@@ -29,6 +29,14 @@ gdscript/warnings/unused_signal=0
 gdscript/warnings/integer_division=0
 gdscript/warnings/narrowing_conversion=0
 
+[dotnet]
+
+project/assembly_name="grave"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg")
+
 [file_customization]
 
 folder_colors={
@@ -38,6 +46,10 @@ folder_colors={
 "res://scenes/": "purple",
 "res://systems/": "red"
 }
+
+[filesystem]
+
+import/blender/enabled=false
 
 [global_group]
 
@@ -276,3 +288,4 @@ equip_3={
 3d_physics/layer_2="CHARACTER_NAVIGATION"
 3d_physics/layer_3="DAMAGEABLE_AREA"
 3d_physics/layer_4="EQUIPPABLE"
+3d_physics/layer_5="FOCUS_INTERACTABLE"

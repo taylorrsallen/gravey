@@ -11,8 +11,8 @@ const AMMO_ROW_MESH = preload("res://systems/hud_3d/ammo_row_mesh.scn")
 # APPEARANCE
 @export_category("Appearance")
 @export var bullet_icon: Texture2D
-@export var live_ammo_color: Color
-@export var background_ammo_color: Color
+@export var live_ammo_color: Color: set = _set_live_ammo_color
+@export var background_ammo_color: Color: set = _set_background_ammo_color
 
 # DATA
 @export_category("Data")
@@ -24,6 +24,14 @@ var live_ammo_meshes: Array[AmmoRowMesh]
 var background_ammo_meshes: Array[AmmoRowMesh]
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+func _set_live_ammo_color(_live_ammo_color: Color) -> void:
+	live_ammo_color = _live_ammo_color
+	for ammo_mesh in live_ammo_meshes: ammo_mesh.get_surface_override_material(0).albedo_color = live_ammo_color
+
+func _set_background_ammo_color(_background_ammo_color: Color) -> void:
+	background_ammo_color = _background_ammo_color
+	for ammo_mesh in background_ammo_meshes: ammo_mesh.get_surface_override_material(0).albedo_color = background_ammo_color
+
 func _set_ammo(_ammo: int) -> void:
 	ammo = clampi(_ammo, 0, max_ammo)
 	if ammo_per_row < 1 || ammo_per_row > 100: return

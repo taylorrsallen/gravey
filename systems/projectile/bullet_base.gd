@@ -17,6 +17,8 @@ func _enter_tree() -> void:
 		collision_mask = 0
 
 func _physics_process(delta: float) -> void:
+	DebugDraw3D.draw_line(global_position, global_position - global_basis.z * data.speed, Color.RED, delta * 4.0)
+	
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 	var query = PhysicsRayQueryParameters3D.create(global_position, global_position - global_basis.z * data.speed, 5, [])
 	query.hit_from_inside = true

@@ -96,6 +96,18 @@ func _physics_process(delta: float) -> void:
 	if is_multiplayer_authority(): heat = move_toward(heat, 0.0, delta * 5.0)
 	var barrel_color: Color = model.barrel_base_color.lerp(model.barrel_overheat_color, heat / data.max_heat)
 	model.barrel_model.get_surface_override_material(0).albedo_color = barrel_color
+	
+	equipped_to_character.body_base.set_magnet(data.hold_magnet)
+	equipped_to_character.body_base.set_hands(data.hands)
+	if data.hands == GunData.Hands.ONE_HANDED:
+		equipped_to_character.body_base.enable_right_hand()
+		equipped_to_character.body_base.disable_left_hand()
+	elif data.hands == GunData.Hands.TWO_HANDED:
+		equipped_to_character.body_base.enable_right_hand()
+		equipped_to_character.body_base.enable_left_hand()
+	else:
+		equipped_to_character.body_base.disable_right_hand()
+		equipped_to_character.body_base.disable_left_hand()
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func try_fire_held_press(player_id: int, character: Character, _delta: float) -> void:
@@ -135,7 +147,7 @@ func _fire(player_id: int, character: Character) -> void:
 	
 	character.gun_barrel_position_recoil_modifier += Vector3(randf_range(data.position_recoil_min.x, data.position_recoil_max.x), randf_range(data.position_recoil_min.y, data.position_recoil_max.y), randf_range(data.position_recoil_min.z, data.position_recoil_max.z))
 	character.gun_barrel_angular_recoil_modifier += Vector3(randf_range(data.angular_recoil_min.x, data.angular_recoil_max.x), randf_range(data.angular_recoil_min.y, data.angular_recoil_max.y), randf_range(data.angular_recoil_min.z, data.angular_recoil_max.z))
-	character.apply_force(model.muzzle.global_basis.z * data.recoil_force)
+	character.apply_force(model.muzzle.global_basis.z.normalized() * data.recoil_force)
 	VfxManager.spawn_vfx(1, model.muzzle.global_position, model.muzzle.global_basis)
 	VfxManager.spawn_vfx(3, model.ejection_port.global_position, model.ejection_port.global_basis)
 	VfxManager.spawn_vfx(4, model.ejection_port.global_position, model.muzzle.global_basis)
@@ -176,7 +188,6 @@ func reload() -> void:
 func interrupt_reload() -> void:
 	reload_timer = 0.0
 	reloading = false
-
 
 func cycle_fire_mode() -> void:
 	fire_mode_index = (fire_mode_index + 1) % data.fire_modes.size()

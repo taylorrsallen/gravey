@@ -43,7 +43,9 @@ const ICONS_DIR: String = ASSET_DIR + ICONS_FOLDER
 static var MATTER_DATABASE: MatterDatabase = load("res://resources/matter/matter_database.res")
 static var BULLET_DATABASE: BulletDatabase = load("res://resources/projectiles/bullet_database.res")
 static var GUN_DATABASE: GunDatabase = load("res://resources/weapons/guns/gun_database.res")
-static var BODY_DATABASE: BodyDatabase = preload("res://resources/bodies/body_database.res")
+static var BODY_DATABASE: BodyDatabase = load("res://resources/bodies/body_database.res")
+static var MAP_DATABASE: MapDatabase = load("res://resources/maps/map_database.res")
+static var VEHICLE_DATABASE: VehicleDatabase = load("res://resources/vehicles/vehicle_database.res")
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 static var main: Main

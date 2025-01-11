@@ -7,9 +7,18 @@ enum FireMode {
 	SINGLE,
 }
 
+enum Hands {
+	ONE_HANDED,
+	TWO_HANDED,
+	NONE,
+}
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 @export_category("Model")
 @export var model: PackedScene
+@export var hold_offset: Vector3
+@export var hold_magnet: Vector3
+@export var hands: Hands = Hands.ONE_HANDED
 
 @export_category("UI")
 @export var name: String

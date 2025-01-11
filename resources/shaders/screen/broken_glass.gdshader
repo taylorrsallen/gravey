@@ -8,7 +8,7 @@ uniform vec4 reflection_color : source_color = vec4(0.588,0.588,0.588,0.5);
 
 uniform sampler2D SCREEN_TEXTURE : hint_screen_texture, filter_linear_mipmap;
 
-void fragment() {	
+void fragment() {
 	COLOR =  texture(crack_texture, UV);
 	vec4 orig_color = COLOR;
 	vec4 adjacent_color = texture(crack_texture, UV + TEXTURE_PIXEL_SIZE * reflection_offset);

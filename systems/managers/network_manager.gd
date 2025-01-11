@@ -81,7 +81,7 @@ func connect_to_server(ip_address: String = "127.0.0.1") -> void:
 	multiplayer.multiplayer_peer = peer
 
 func disconnect_network() -> void:
-	Util.main.reset()
+	Util.main.reset(false)
 	
 	multiplayer.multiplayer_peer = null
 	

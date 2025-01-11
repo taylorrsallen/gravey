@@ -52,10 +52,10 @@ func _set_control_mode(_control_mode: ControlMode) -> void:
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _physics_process(delta: float) -> void:
-	if perspective == Perspective.FPS:
-		update_first_person_position(1.0)
-	else:
-		update_third_person_position(delta * 20.0)
+	#if perspective == Perspective.FPS:
+		#update_first_person_position(1.0)
+	#else:
+		#update_third_person_position(delta * 20.0)
 	
 	camera_3d.fov = lerpf(camera_3d.fov, base_fov + fov_mod, 4.0 * delta)
 

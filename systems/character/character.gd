@@ -4,6 +4,7 @@ class_name Character extends RigidBody3D
 signal spawned_on_peer(peer_id: int, character: Character)
 signal jumped()
 signal landed(force: float)
+signal damaged()
 signal killed(character: Character)
 
 signal water_entered()
@@ -46,6 +47,7 @@ enum CharacterFlag {
 # DATA
 ## There is supposed to be a base class that both PlayerController and AIController derive from, but I don't need it for this game, and I am LAZY!!!
 @export var controller: PlayerController
+@export var metadata: Dictionary
 
 # FLAGS
 @export var flags: int
@@ -84,7 +86,8 @@ var last_velocity: Vector3
 var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 # VEHICLE
-@export var vehicle: Node3D
+@export var vehicle: VehicleBase
+@export var in_vehicle: bool
 
 # AIMING
 @export var breath: Vector3
@@ -110,8 +113,9 @@ var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var shields_down: bool
 @export var shields_charging: bool
 
-# TEMP
-@onready var damageable_area_3d: DamageableArea3D = $DamageableArea3D
+# MELEE
+@export var melee_time: float = 0.5
+@export var melee_timer: float
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func is_flag_on(flag: CharacterFlag) -> bool: return Util.is_flag_on(flags, flag)
@@ -120,39 +124,86 @@ func set_flag_off(flag: CharacterFlag) -> void: flags = Util.set_flag_off(flags,
 func set_flag(flag: CharacterFlag, active: bool) -> void: flags = Util.set_flag(flags, flag, active)
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+# GETSET
 ## Thou shalt not access body_base directly or thou shalt be smote
 func set_body_id(body_id: int) -> void:
 	body_base.body_id = body_id
 
 func _on_body_changed() -> void:
-	body_base.body_model.l_hand_skeleton_ik_3d.target_node = l_hand_ik_target.get_path()
-	body_base.body_model.l_hand_skeleton_ik_3d.start()
-	body_base.body_model.r_hand_skeleton_ik_3d.target_node = r_hand_ik_target.get_path()
-	body_base.body_model.r_hand_skeleton_ik_3d.start()
-	print("Changed")
+	if body_base.body_model.l_hand_skeleton_ik_3d:
+		body_base.body_model.l_hand_skeleton_ik_3d.target_node = l_hand_ik_target.get_path()
+		body_base.body_model.l_hand_skeleton_ik_3d.start()
+	if body_base.body_model.r_hand_skeleton_ik_3d:
+		body_base.body_model.r_hand_skeleton_ik_3d.target_node = r_hand_ik_target.get_path()
+		body_base.body_model.r_hand_skeleton_ik_3d.start()
+	
+	max_shields = body_base.body_data.max_shields
+	shields = max_shields
+	max_health = body_base.body_data.max_health
+	health = max_health
+	
+	crouch_speed = body_base.body_data.crouch_speed
+	walk_speed = body_base.body_data.walk_speed
+	jog_speed = body_base.body_data.jog_speed
+	sprint_speed = body_base.body_data.sprint_speed
+
+func get_weapon_hold_offset() -> Vector3:
+	if gun_base.data:
+		return gun_base.data.hold_offset
+	else:
+		return Vector3.ZERO
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _enter_tree() -> void:
 	set_multiplayer_authority(get_parent().get_multiplayer_authority())
 
 func _ready() -> void:
-	damageable_area_3d.source = self
 	gun_base.equipped_to_character = self
 	body_base.body_changed.connect(_on_body_changed)
 	
 	if is_multiplayer_authority():
 		inventory.init()
-		body_base.hide()
+		
+		## TODO: TEMP
+		#body_base.hide()
+	
+	gun_barrel_ik_target.global_position = global_position
+	l_hand_ik_target.global_position = global_position
+	r_hand_ik_target.global_position = global_position
 
 func _physics_process(delta: float) -> void:
+	if !is_multiplayer_authority(): physics_update(delta)
+
+func physics_update(delta: float) -> void:
+	if body_base.melee_target == 1.0:
+		melee_timer += delta
+		if melee_timer >= melee_time:
+			melee_timer = 0.0
+			body_base.melee_target = 0.0
+			body_base.body_model.set_melee_active(false)
+		body_base.set_ik_active(false)
+	else:
+		body_base.set_ik_active(true)
+	
+	if in_vehicle:
+		body_base.set_ik_active(false)
+		gun_base.hide()
+		body_base.set_walking(0.0)
+	else:
+		gun_base.show()
+	
 	if !vehicle:
 		_update_movement(delta)
 		_update_aim(delta)
-		_update_stats(delta)
 	else:
-		pass # Send inputs to vehicle, just like how Controller sends input to Character
+		_send_vehicle_inputs(delta)
+		vehicle.update(delta)
+		linear_velocity = Vector3.ZERO
+		global_position = vehicle.seat.global_position
+	
+	_update_stats(delta)
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if shield_recharge_timer != 0.0: return
 	if shields == max_shields: return
 	var shield_percent: float = shields * 0.01
@@ -172,6 +223,9 @@ func look_in_direction(look_basiss: Basis, _delta: float) -> void:
 	$BodyContainer/MeshInstance3D.global_basis = look_basiss
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+func _send_vehicle_inputs(_delta: float) -> void:
+	pass
+
 func _update_stats(delta: float) -> void:
 	if is_multiplayer_authority():
 		shield_recharge_timer = clampf(shield_recharge_timer - delta, 0.0, shield_recharge_delay)
@@ -197,6 +251,11 @@ func _update_stats(delta: float) -> void:
 func _update_aim(delta: float) -> void:
 	if !is_multiplayer_authority(): return
 	
+	if body_base.body_model.r_hand_skeleton_ik_3d && body_base.body_model.r_hand_skeleton_ik_3d.active == false && body_base.body_model.r_hand_bone_attachment_3d:
+		gun_barrel_ik_target.global_transform = body_base.body_model.r_hand_bone_attachment_3d.get_child(0).global_transform
+		gun_barrel_ik_target.scale = Vector3.ONE
+		return
+	
 	# Update breath vector, used to add a little bit of natural movement to the aim so that it isn't robotically perfect
 	breath_timer += delta
 	breath = Vector3(sin(breath_timer * 0.1), sin(breath_timer * 0.3), sin(breath_timer * 0.1)) * 0.3
@@ -205,25 +264,28 @@ func _update_aim(delta: float) -> void:
 	var raw_position_recoil: Vector3 = gun_barrel_position_recoil_modifier * 0.1 + breath * 0.1
 	var position_recoil: Vector3 = (raw_position_recoil.x * gun_barrel_ik_target.global_basis.x + raw_position_recoil.y * gun_barrel_ik_target.global_basis.y + raw_position_recoil.z * gun_barrel_ik_target.global_basis.z)
 	
-	gun_barrel_ik_target.global_position = gun_barrel_ik_target.global_position.move_toward(gun_barrel_position_target + position_recoil, delta * clampf(gun_barrel_ik_target.global_position.distance_to(gun_barrel_position_target) * 55.0, 2.0, 99.0))
+	gun_barrel_ik_target.global_position = gun_barrel_ik_target.global_position.move_toward(gun_barrel_position_target + position_recoil, delta * clampf(gun_barrel_ik_target.global_position.distance_to(gun_barrel_position_target) * 55.0, 2.0, 999.0))
 	
 	# Barrel look direction recoil
 	var look_recoil: Vector3 = (gun_barrel_angular_recoil_modifier.x * gun_barrel_ik_target.global_basis.x + gun_barrel_angular_recoil_modifier.y * gun_barrel_ik_target.global_basis.y)
 	
 	var gun_barrel_look_direction_target: Vector3 = (gun_barrel_look_target - gun_barrel_ik_target.global_position).normalized()
-	gun_barrel_look_direction = gun_barrel_look_direction.move_toward(gun_barrel_look_direction_target + look_recoil, delta * clampf(gun_barrel_look_direction.distance_to(gun_barrel_look_direction_target) * 15.0, 1.05, 99.0))
+	gun_barrel_look_direction = gun_barrel_look_direction.move_toward(gun_barrel_look_direction_target + look_recoil, delta * clampf(gun_barrel_look_direction.distance_to(gun_barrel_look_direction_target) * 15.0, 1.05, 999.0))
 	gun_barrel_ik_target.look_at(gun_barrel_ik_target.global_position + gun_barrel_look_direction)
 	
 	# Barrel steadying
 	# TODO: Affected by gun weight & arm strength
-	gun_barrel_position_recoil_modifier = gun_barrel_position_recoil_modifier.move_toward(Vector3.ZERO, delta * clampf(gun_barrel_position_recoil_modifier.distance_to(Vector3.ZERO) * 15.0, 1.05, 99.0))
-	gun_barrel_angular_recoil_modifier = gun_barrel_angular_recoil_modifier.move_toward(Vector3.ZERO, delta * clampf(gun_barrel_angular_recoil_modifier.distance_to(Vector3.ZERO) * 15.0, 1.05, 99.0))
+	gun_barrel_position_recoil_modifier = gun_barrel_position_recoil_modifier.move_toward(Vector3.ZERO, delta * clampf(gun_barrel_position_recoil_modifier.distance_to(Vector3.ZERO) * 15.0, 1.05, 999.0))
+	gun_barrel_angular_recoil_modifier = gun_barrel_angular_recoil_modifier.move_toward(Vector3.ZERO, delta * clampf(gun_barrel_angular_recoil_modifier.distance_to(Vector3.ZERO) * 15.0, 1.05, 999.0))
 	
 	if is_instance_valid(gun_base.model):
-		if is_instance_valid(gun_base.model.l_hand_grip): l_hand_ik_target.global_position = gun_base.model.l_hand_grip.global_position
-		if is_instance_valid(gun_base.model.r_hand_grip): r_hand_ik_target.global_position = gun_base.model.r_hand_grip.global_position
+		if is_instance_valid(gun_base.model.l_hand_grip):
+			l_hand_ik_target.global_transform = gun_base.model.l_hand_grip.global_transform
+		if is_instance_valid(gun_base.model.r_hand_grip):
+			r_hand_ik_target.global_transform = gun_base.model.r_hand_grip.global_transform
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+# HELPER
 func snap_gun_aim() -> void:
 	var look_recoil: Vector3 = (gun_barrel_angular_recoil_modifier.x * gun_barrel_ik_target.global_basis.x + gun_barrel_angular_recoil_modifier.y * gun_barrel_ik_target.global_basis.y)
 	
@@ -232,9 +294,20 @@ func snap_gun_aim() -> void:
 	gun_barrel_ik_target.look_at(gun_barrel_ik_target.global_position + gun_barrel_look_direction)
 
 func start_shield_regen_sound() -> void:
-	print("start")
 	shields_charging = true
 	shield_recharge_audio_player.play()
+
+func set_gun_barrel_aim(_basis: Basis, offset: Vector3) -> void:
+	if body_base.body_model.r_shoulder_bone_attachment_3d:
+		gun_barrel_position_target = (body_base.body_model.r_shoulder_bone_attachment_3d.global_position
+			+ _basis.x * offset.x
+			+ _basis.y * offset.y
+			- _basis.z * offset.z)
+	else:
+		gun_barrel_position_target = (body_base.body_model.global_position
+			+ _basis.x * offset.x
+			+ _basis.y * offset.y
+			- _basis.z * offset.z)
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _update_movement(delta: float) -> void:
@@ -312,11 +385,15 @@ func _update_movement_grounded(delta: float) -> void:
 		if move_direction != Vector3.ZERO:
 			linear_velocity.x = move_toward(linear_velocity.x, move_direction.x * current_speed, current_speed * delta * move_accel_lerp_speed)
 			linear_velocity.z = move_toward(linear_velocity.z, move_direction.z * current_speed, current_speed * delta * move_accel_lerp_speed)
+			if is_multiplayer_authority(): body_base.set_walking(1.0)
 		else:
 			linear_velocity.x = move_toward(linear_velocity.x, 0.0, current_speed * delta * move_accel_lerp_speed)
 			linear_velocity.z = move_toward(linear_velocity.z, 0.0, current_speed * delta * move_accel_lerp_speed)
+			if is_multiplayer_authority(): body_base.set_walking(0.0)
 	
-	if world_move_input == Vector3.ZERO: set_flag_off(CharacterFlag.SPRINT)
+	if world_move_input == Vector3.ZERO:
+		set_flag_off(CharacterFlag.SPRINT)
+		if is_multiplayer_authority(): body_base.set_walking(0.0)
 	
 	last_velocity = linear_velocity
 
@@ -388,18 +465,12 @@ func _update_ride_force() -> void:
 		constant_force = Vector3.ZERO
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
-func _on_damageable_area_3d_damaged(damage_data: DamageData, area_id: int, _source: Node) -> void:
-	if !is_multiplayer_authority():
-		_rpc_deal_damage.rpc_id(get_multiplayer_authority(), damage_data.damage_strength, area_id)
-	else:
-		_deal_damage(damage_data.damage_strength, area_id)
-
 @rpc("any_peer", "call_remote", "unreliable")
 func _rpc_deal_damage(damage_strength: float, area_id: int) -> void:
 	_deal_damage(damage_strength, area_id)
 
 func _deal_damage(damage_strength: float, _area_id: int) -> void:
-	print("[Peer %s] Character damaged on [Peer %s]" % [get_multiplayer_authority(), multiplayer.get_unique_id()])
+	damaged.emit()
 	
 	shield_recharge_timer = shield_recharge_delay
 	shields_charging = false
@@ -408,20 +479,19 @@ func _deal_damage(damage_strength: float, _area_id: int) -> void:
 	var damage_to_shields: float = clampf(damage_strength, 0.0, shields)
 	shields -= damage_to_shields
 	damage_left -= damage_to_shields
-	print("Shields: %s" % shields)
 	
 	if damage_left <= 0.0: return
 	
 	health -= damage_left
-	print("Health: %s" % health)
 	
 	if health <= 0.0: die()
 
-func die() -> void:
-	drop_weapon()
-	killed.emit(self)
-	inventory.drop_contents()
-	queue_free()
+# (({[%%%(({[=======================================================================================================================]}))%%%]}))
+func _on_damageable_area_3d_damaged(damage_data: DamageData, area_id: int, source: Node) -> void:
+	if !is_multiplayer_authority():
+		_rpc_deal_damage.rpc_id(get_multiplayer_authority(), damage_data.damage_strength, area_id)
+	else:
+		_deal_damage(damage_data.damage_strength, area_id)
 
 func get_matter_id_for_damageable_area_3d(_area_id: int) -> int:
 	if shields > 0.0:
@@ -429,8 +499,22 @@ func get_matter_id_for_damageable_area_3d(_area_id: int) -> int:
 	else:
 		return 0
 
+# (({[%%%(({[=======================================================================================================================]}))%%%]}))
+# Actions
+## Maybe you should just DIE
+func die() -> void:
+	drop_weapon(Vector3(randf_range(-2.0, 2.0), randf_range(2.0, 5.0), randf_range(-2.0, 2.0)), Vector3(randf_range(-10.0, 10.0), randf_range(-10.0, 10.0), randf_range(-10.0, 10.0)))
+	killed.emit(self)
+	inventory.drop_contents()
+	
+	if is_instance_valid(vehicle):
+		SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, vehicle.id, vehicle.metadata, vehicle.global_transform)
+		exit_vehicle()
+
+	queue_free()
+
 func equip(equippable: EquippableBase) -> void:
-	drop_weapon()
+	drop_weapon(-global_basis.z, Vector3.ZERO)
 	
 	gun_base.data_id = equippable.gun_data_id
 	
@@ -438,14 +522,76 @@ func equip(equippable: EquippableBase) -> void:
 	if equippable.metadata.has("fire_mode_index"): gun_base.fire_mode_index = equippable.metadata["fire_mode_index"]
 	equippable.destroy()
 	
+	_on_weapon_changed()
+
+func _on_weapon_changed() -> void:
 	weapon_changed.emit()
 
-func drop_weapon() -> void:
+func drop_weapon(_lin_vel: Vector3, _ang_vel: Vector3) -> void:
 	if gun_base.data_id == 0: return
 	SpawnManager.spawn_equippable(
 		gun_base.data_id, {
 			"rounds" = gun_base.rounds,
 			"fire_mode_index" = gun_base.fire_mode_index,
 		},
-		global_position)
+		global_transform,
+		_lin_vel,
+		_ang_vel)
 	gun_base.data_id = 0
+
+func melee() -> void:
+	if vehicle:
+		pass
+	else:
+		_rpc_melee.rpc()
+
+@rpc("any_peer", "call_local", "unreliable")
+func _rpc_melee() -> void:
+	print("melee")
+	if body_base.melee_target != 1.0:
+		if is_instance_valid(body_base.body_model.animation_tree):
+			if body_base.melee_right:
+				body_base.body_model.animation_tree["parameters/l_melee_seek/seek_request"] = 0.0
+			else:
+				body_base.body_model.animation_tree["parameters/r_melee_seek/seek_request"] = 0.0
+		body_base.melee_right = !body_base.melee_right
+		body_base.body_model.set_melee_active(true)
+	body_base.melee_target = 1.0
+
+func board_vehicle(_vehicle: VehicleBase) -> void:
+	vehicle = _vehicle
+	vehicle.board(self)
+	in_vehicle = true
+
+func exit_vehicle() -> void:
+	vehicle.exit()
+	vehicle.free()
+	vehicle = null
+	in_vehicle = false
+
+func try_reload() -> void:
+	if vehicle:
+		vehicle.try_reload()
+	else:
+		gun_base.try_reload()
+
+func set_sprinting(active: bool) -> void:
+	if vehicle:
+		pass
+	else:
+		if active:
+			if !is_flag_on(Character.CharacterFlag.SPRINT): set_flag_on(Character.CharacterFlag.SPRINT)
+		else:
+			if is_flag_on(Character.CharacterFlag.SPRINT): set_flag_off(Character.CharacterFlag.SPRINT)
+
+func try_fire_held_press(local_player_id: int, delta: float) -> void:
+	if vehicle:
+		pass
+	else:
+		gun_base.try_fire_held_press(local_player_id, self, delta)
+
+func try_fire_single_press(local_player_id: int, delta: float) -> void:
+	if vehicle:
+		pass
+	else:
+		gun_base.try_fire_single_press(local_player_id, self, delta)

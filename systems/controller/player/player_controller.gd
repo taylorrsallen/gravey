@@ -40,6 +40,7 @@ var device_assigned: int = -1
 @onready var owned_objects: Node = $OwnedObjects
 @onready var owned_objects_spawner: MultiplayerSpawner = $OwnedObjects/MultiplayerSpawner
 @onready var hud_3d: HUD3D = $HUD3D
+@onready var multiplayer_spawner: MultiplayerSpawner = $OwnedObjects/MultiplayerSpawner
 
 ## VIEW
 @onready var camera_view_layer: CanvasLayer = $CameraViewLayer
@@ -56,6 +57,8 @@ var device_assigned: int = -1
 @export var desire_to_equip: float
 @export var max_desire_to_equip: float = 0.65
 @export var successfully_equipped_with_press: bool
+
+@export var focused_interactable: InteractableBase
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func is_flag_on(flag: PlayerControllerFlag) -> bool: return Util.is_flag_on(flags, flag)
@@ -75,6 +78,9 @@ func _enter_tree() -> void:
 	set_multiplayer_authority(get_parent().name.to_int())
 
 func _ready() -> void:
+	for vehicle_data in Util.VEHICLE_DATABASE.database:
+		multiplayer_spawner.add_spawnable_scene(vehicle_data.scene.resource_path)
+	
 	if is_multiplayer_authority():
 		init()
 	else:
@@ -116,12 +122,17 @@ func _physics_process(delta: float) -> void:
 			character.world_move_input = world_move_input
 			character.look_in_direction(camera_rig.camera_3d.global_basis, delta)
 			
+			character.physics_update(delta)
+			
+			_update_character_focused_interactable()
+			_update_character_focused_interactable_action()
 			_update_character_focused_equippable()
 			_update_character_equip_action()
 			_update_character_ik_targets(delta)
 			_update_character_input(delta)
 			_update_character_hud_3d()
 		else:
+			camera_rig.update_first_person_position(1.0)
 			camera_rig.anchor_position += world_move_input * 0.1
 
 func _update_raw_inputs() -> void:
@@ -142,6 +153,29 @@ func _update_camera_look(delta: float) -> void:
 	
 	camera_rig.apply_inputs(raw_move_input, look_movement, delta)
 	camera_rig.apply_camera_rotation()
+
+func _update_character_focused_interactable() -> void:
+	var space_state: PhysicsDirectSpaceState3D = character.get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(character.global_position, character.global_position + camera_rig.get_camera_forward() * 4.0, 16)
+	var result: Dictionary = space_state.intersect_ray(query)
+	if !result.is_empty() && result["collider"].get_parent() != character.vehicle && !result["collider"].get_parent().full:
+		focused_interactable = result["collider"]
+	else:
+		focused_interactable = null
+
+func _update_character_focused_interactable_action() -> void:
+	if Input.is_action_just_pressed("equip_" + str(local_id)):
+		if is_instance_valid(character.vehicle) && character.vehicle.can_exit:
+			SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, character.vehicle.id, character.vehicle.metadata, character.vehicle.global_transform)
+			character.exit_vehicle()
+		else:
+			if !is_instance_valid(focused_interactable): return
+			if focused_interactable.get_parent() is VehicleBase:
+				var vehicle: VehicleBase = Util.VEHICLE_DATABASE.database[focused_interactable.get_parent().id].scene.instantiate()
+				vehicle.transform = focused_interactable.get_parent().global_transform
+				owned_objects.add_child(vehicle, true)
+				character.board_vehicle(vehicle)
+				focused_interactable.get_parent().destroy()
 
 func _update_character_focused_equippable() -> void:
 	var results: Array[PhysicsBody3D] = AreaQueryManager.query_area(character.global_position, 1.2, 8)
@@ -175,17 +209,32 @@ func _update_character_equip_action() -> void:
 	successfully_equipped_with_press = true
 
 func _update_character_hud_3d() -> void:
-	hud_3d.global_position = camera_rig.camera_3d.global_position
-	hud_3d.global_basis = camera_rig.camera_3d.global_basis
-	hud_3d.update_reticle(camera_rig, character)
-	hud_3d.ammo_display.ammo = character.gun_base.rounds
+	if is_instance_valid(character.vehicle):
+		camera_rig.update_first_person_position(1.0)
+		hud_3d.global_position = camera_rig.camera_3d.global_position
+	else:
+		hud_3d.global_position = camera_rig.camera_3d.global_position
+		camera_rig.update_first_person_position(1.0)
 	
 	hud_3d.health_display.ammo = character.health
 	hud_3d.shield_display.ammo = character.shields
 	
-	hud_3d.set_ammo_stock_count(character.inventory.ammo_stock[character.gun_base.data.bullet_id])
+	hud_3d.global_basis = camera_rig.camera_3d.global_basis
 	
-	if is_instance_valid(focused_equippable):
+	if character.gun_base.data:
+		hud_3d.update_reticle(camera_rig, character)
+		hud_3d.ammo_display.ammo = character.gun_base.rounds
+		hud_3d.set_ammo_stock_count(character.inventory.ammo_stock[character.gun_base.data.bullet_id])
+	else:
+		hud_3d.ammo_display.ammo = 0
+	
+	if is_instance_valid(focused_interactable):
+		if focused_interactable.get_parent() is VehicleBase:
+			hud_3d.interact_prompt.text = "Press E to get in " + "ERROR_VEHICLE_NOT_FOUND"
+			hud_3d.interact_prompt.show()
+		else:
+			hud_3d.interact_prompt.hide()
+	elif is_instance_valid(focused_equippable):
 		var gun_data: GunData = Util.GUN_DATABASE.database[focused_equippable.gun_data_id - 1]
 		hud_3d.interact_prompt.text = "Hold E to equip " + gun_data.name
 		hud_3d.interact_prompt.show()
@@ -195,17 +244,26 @@ func _update_character_hud_3d() -> void:
 	hud_3d.radar.update_display(camera_rig, character)
 
 func _update_character_ik_targets(delta: float) -> void:
-	character.gun_barrel_position_target = camera_rig.camera_3d.global_position - camera_rig.camera_3d.global_basis.z * -0.1 + camera_rig.camera_3d.global_basis.x * 0.25 - camera_rig.camera_3d.global_basis.y * 0.2
+	var hold_offset: Vector3 = character.get_weapon_hold_offset()
+	character.set_gun_barrel_aim(camera_rig.camera_3d.global_basis, hold_offset)
+	
+	#print(character.gun_barrel_position_target.distance_to(character.body_base.body_model.r_shoulder_bone_attachment_3d.global_position))
+	
 	camera_rig.ray_cast_3d.force_raycast_update()
 	if camera_rig.ray_cast_3d.is_colliding():
 		character.gun_barrel_look_target = camera_rig.ray_cast_3d.get_collision_point()
 	else:
 		character.gun_barrel_look_target = camera_rig.camera_3d.global_position + camera_rig.get_camera_forward() * 100.0
 	
-	character.face_direction(camera_rig.get_yaw_forward(), delta)
+	if is_instance_valid(character.vehicle):
+		character.face_direction(-character.vehicle.global_basis.z, delta)
+	else:
+		character.face_direction(camera_rig.get_yaw_forward(), delta)
 
 func _update_character_input(delta: float) -> void:
-	if Input.is_action_just_pressed("reload_" + str(local_id)): character.gun_base.try_reload()
+	if Input.is_action_just_pressed("melee_" + str(local_id)): character.melee()
+	
+	if Input.is_action_just_pressed("reload_" + str(local_id)): character.try_reload()
 	
 	if Input.is_action_pressed("equip_" + str(local_id)):
 		desire_to_equip = clampf(desire_to_equip + delta, 0.0, max_desire_to_equip)
@@ -213,14 +271,14 @@ func _update_character_input(delta: float) -> void:
 		desire_to_equip = 0.0
 	
 	if Input.is_action_pressed("sprint_" + str(local_id)):
-		if !character.is_flag_on(Character.CharacterFlag.SPRINT): character.set_flag_on(Character.CharacterFlag.SPRINT)
+		character.set_sprinting(true)
 	else:
-		if character.is_flag_on(Character.CharacterFlag.SPRINT): character.set_flag_off(Character.CharacterFlag.SPRINT)
+		character.set_sprinting(false)
 	
 	if Input.is_action_pressed("primary_" + str(local_id)):
-		character.gun_base.try_fire_held_press(local_id, character, delta)
+		character.try_fire_held_press(local_id, delta)
 	if Input.is_action_just_pressed("primary_" + str(local_id)):
-		character.gun_base.try_fire_single_press(local_id, character, delta)
+		character.try_fire_single_press(local_id, delta)
 	
 	if Input.is_action_just_pressed("fire_mode_toggle_" + str(local_id)):
 		character.gun_base.cycle_fire_mode()
@@ -229,12 +287,24 @@ func _update_character_input(delta: float) -> void:
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func spawn_character() -> void:
 	if !is_multiplayer_authority(): return
+	
 	character = CHARACTER.instantiate()
-	character.position = Vector3.ZERO + Vector3.UP * 10.5
+	
+	var valid_lobby_spawns: Array[LobbySpawn] = []
+	for lobby_spawn in Util.main.lobby_spawns.get_children():
+		if lobby_spawn.is_valid_spawn(): valid_lobby_spawns.append(lobby_spawn)
+	var lobby_spawn: LobbySpawn = valid_lobby_spawns.pick_random()
+	character.position = lobby_spawn.global_position
+	
 	character.weapon_changed.connect(_on_character_weapon_changed)
+	character.damaged.connect(_on_character_damaged)
+	
 	character.controller = self
 	owned_objects.add_child(character, true)
 	character.set_body_id(0)
+	
+	character.body_base.hide()
+	
 	_on_character_weapon_changed()
 
 func _on_character_weapon_changed() -> void:
@@ -248,6 +318,9 @@ func _on_character_weapon_changed() -> void:
 	hud_3d.set_ammo_stock_icon(bullet_data.icon)
 	hud_3d.set_available_fire_modes_displayed(character.gun_base.data.fire_modes)
 	hud_3d.set_fire_mode_displayed(character.gun_base.get_fire_mode())
+
+func _on_character_damaged() -> void:
+	hud_3d.damage()
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 # CURSOR
@@ -328,7 +401,7 @@ func _update_4_player_splitscreen_view() -> void:
 # CAMERA
 func _init_camera_rig() -> void:
 	if is_instance_valid(character):
-		camera_rig.anchor_node = character.body_base.body_model.head_bone_attachment
+		camera_rig.anchor_node = character.body_base.body_model.head_bone_attachment.get_node("EyeTarget")
 		
 		#if camera_rig.perspective == Perspective.FPS:
 			#camera_rig.anchor_node = character.get_eye_target()
@@ -346,8 +419,6 @@ func _init_camera_rig() -> void:
 	for i in 4:
 		if i == local_id: continue
 		camera_rig.camera_3d.cull_mask &= ~(1 << (15 + i))
-	
-	#camera_rig.anchor_position = Util.main.spawn_point + Vector3.UP
 
 func set_camera_rig(_camera_rig: CameraRig) -> void:
 	camera_rig = _camera_rig

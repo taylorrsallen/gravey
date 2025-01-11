@@ -1,17 +1,60 @@
 class_name AIController extends Node
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
-@export var character: Character
+@export var character: Character: set = _set_character
 
 @export var shots_per_second: float = 0.1
 var shots_timer: float
 
+@export var min_desired_distance: float = 10.0
+@export var max_desired_distance: float = 20.0
+@export var firing_range: float = 30.0
+@export var melee_range: float
+
+@export var die_with_character: bool = true: set = _set_die_with_character
+
+var target_character: Character
+
+@export var metadata: Dictionary
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+func _set_die_with_character(_die_with_character: bool) -> void:
+	die_with_character = _die_with_character
+	if is_instance_valid(character):
+		if !die_with_character && character.killed.is_connected(queue_free):
+			character.killed.disconnect(_on_character_died)
+		elif die_with_character && !character.killed.is_connected(queue_free):
+			character.killed.connect(_on_character_died)
+
+func _on_character_died(_character: Character):
+	queue_free()
+
+func _set_character(_character: Character) -> void:
+	character = _character
+	min_desired_distance = character.body_base.body_data.min_desired_distance
+	max_desired_distance = character.body_base.body_data.max_desired_distance
+	firing_range = character.body_base.body_data.firing_range
+	melee_range = character.body_base.body_data.melee_range
+
+# (({[%%%(({[=======================================================================================================================]}))%%%]}))
+func _ready() -> void:
+	set_physics_process(false)
+	call_deferred("_init_navigation")
+	die_with_character = die_with_character
+
+func _init_navigation() -> void:
+	await get_tree().physics_frame
+	set_physics_process(true)
+
 func _physics_process(delta: float) -> void:
 	if !multiplayer.is_server(): return
 	if !is_instance_valid(character): return
 	
+	character.physics_update(delta)
+	_find_target_character()
+	_update_target_character(delta)
+
+func _find_target_character() -> void:
 	var peer_connections: Array[PeerConnection] = []
 	for child in Util.main.network_manager.get_children():
 		if child is PeerConnection: peer_connections.append(child)
@@ -38,46 +81,58 @@ func _physics_process(delta: float) -> void:
 		closest_player_character = player_character
 		closest_player_distance = distance
 	
-	if !closest_player_character: return
-	
-	_update_target_character(closest_player_character, delta)
-	
+	target_character = closest_player_character
 
-
-func _update_target_character(target_character: Character, delta: float) -> void:
+func _update_target_character(delta: float) -> void:
+	if !is_instance_valid(target_character): return
+	
 	var look_transform: Transform3D = Transform3D(Basis.IDENTITY, character.global_position)
 	look_transform = look_transform.looking_at(target_character.global_position)
 	
-	character.look_in_direction(look_transform.basis, delta)
-	character.gun_barrel_look_target = target_character.global_position
-	character.gun_barrel_position_target = character.global_position - look_transform.basis.z * 0.4 + look_transform.basis.x * 0.3 - look_transform.basis.y * 0.2
+	var distance_to_target: float = character.global_position.distance_to(target_character.global_position)
 	
+	character.look_in_direction(look_transform.basis, delta)
+	character.gun_barrel_look_target = target_character.global_position + Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * distance_to_target * 0.05
+	character.set_gun_barrel_aim(look_transform.basis, character.get_weapon_hold_offset())
 	
 	var should_move_closer: bool = false
 	var should_fire: bool = false
+	var should_melee: bool = false
 	
 	var space_state: PhysicsDirectSpaceState3D = character.get_world_3d().direct_space_state
 	var query = PhysicsRayQueryParameters3D.create(character.gun_base.global_position, character.global_position - look_transform.basis.z * 50.0, 3, [character.get_rid()])
 	var result: Dictionary = space_state.intersect_ray(query)
 	
 	if result.has("collider") && is_instance_valid(result["collider"]) && result["collider"] == target_character:
-		var distance: float = character.global_position.distance_to(target_character.global_position)
-		should_move_closer = distance > 20.0
-		should_fire = distance < 30.0
+		should_move_closer = distance_to_target > max_desired_distance
+		should_fire = distance_to_target <= firing_range
 	else:
 		should_move_closer = true
 	
 	if should_move_closer:
 		character.navigation_agent_3d.target_position = target_character.global_position
 		var next_nav_point = character.navigation_agent_3d.get_next_path_position()
-		character.world_move_input = (next_nav_point - character.global_position).normalized()
+		character.world_move_input = next_nav_point - character.global_position
+		character.world_move_input.y = 0.0
+		character.world_move_input = character.world_move_input.normalized()
+		character.face_direction(character.world_move_input, delta)
+	elif distance_to_target < min_desired_distance:
+		character.world_move_input = character.global_position - target_character.global_position
+		character.world_move_input.y = 0.0
+		character.world_move_input = character.world_move_input.normalized()
+		character.face_direction(-character.world_move_input, delta)
 	else:
+		character.face_direction(target_character.global_position - character.global_position, delta)
 		character.world_move_input = Vector3.ZERO
 	
-	if should_fire:
+	if character.global_position.distance_to(target_character.global_position) <= melee_range: should_melee = true
+	
+	if should_fire && !should_melee:
 		shots_timer += randf_range(delta, delta * 0.5)
 		if shots_timer >= shots_per_second:
 			shots_timer = 0.0
 			character.gun_base.try_fire_single_press(0, character, delta)
 			if character.gun_base.rounds == 0:
 				character.gun_base.try_reload()
+	elif should_melee:
+		character.melee()

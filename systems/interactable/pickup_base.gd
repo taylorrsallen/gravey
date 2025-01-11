@@ -12,7 +12,6 @@ enum PickupType {
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _set_id(_id: int) -> void:
 	id = _id
-	_update_model()
 
 func _update_model() -> void:
 	if is_instance_valid(model): model.queue_free()
@@ -22,6 +21,9 @@ func _update_model() -> void:
 		model = Util.BULLET_DATABASE.database[id].ammo_box_model.instantiate()
 	
 	if model: add_child.call_deferred(model)
+
+func _ready() -> void:
+	_update_model()
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func pickup(character: Character) -> void:

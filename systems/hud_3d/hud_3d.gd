@@ -10,7 +10,8 @@ class_name HUD3D extends Node3D
 @onready var interact_prompt: Label3D = $InteractPrompt
 
 @onready var ammo_stock_counter: Label3D = $AmmoStockWidget/AmmoStockCounter
-@onready var ammo_stock_icon: AmmoRowMesh = $AmmoStockWidget/Node3D/AmmoRowMesh
+@onready var ammo_stock_icon: AmmoRowMesh = $AmmoStockWidget/Node3D/AmmoStockIcon
+@onready var ammo_stock_border: MeshInstance3D = $AmmoStockWidget/AmmoStockBorder
 
 @onready var single_back: Label3D = $FireModeDisplay/SingleBack
 @onready var single_front: Label3D = $FireModeDisplay/SingleBack/SingleFront
@@ -19,8 +20,53 @@ class_name HUD3D extends Node3D
 @onready var full_auto_back: Label3D = $FireModeDisplay/FullAutoBack
 @onready var full_auto_front: Label3D = $FireModeDisplay/FullAutoBack/FullAutoFront
 
+@onready var text_foreground_elements: Array[Label3D] = [single_front, semi_auto_front, full_auto_front, ammo_stock_counter, interact_prompt]
+@onready var text_background_elements: Array[Label3D] = [single_back, semi_auto_back, full_auto_back]
+
+@export var primary_color_set: ColorSet
+@export var secondary_color_set: ColorSet
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+func _physics_process(delta: float) -> void:
+	primary_color_set.update(delta)
+	secondary_color_set.update(delta)
+	
+	reticle.get_surface_override_material(0).albedo_color = primary_color_set.get_primary()
+	shield_display.live_ammo_color = primary_color_set.get_primary()
+	shield_display.background_ammo_color = primary_color_set.get_background()
+	health_display.live_ammo_color = secondary_color_set.get_primary()
+	health_display.background_ammo_color = secondary_color_set.get_background()
+	radar.get_surface_override_material(0).albedo_color = primary_color_set.get_secondary()
+	ammo_stock_icon.get_surface_override_material(0).albedo_color = primary_color_set.get_primary()
+	ammo_stock_border.get_surface_override_material(0).albedo_color = primary_color_set.get_primary()
+	ammo_display.live_ammo_color = primary_color_set.get_primary()
+	ammo_display.background_ammo_color = primary_color_set.get_background()
+	
+	for i in text_background_elements.size():
+		text_foreground_elements[i].modulate = primary_color_set.get_primary()
+		text_foreground_elements[i].modulate.a8 = 100
+		text_background_elements[i].modulate = primary_color_set.get_background()
+		text_background_elements[i].modulate.a8 = 100
+	
+	
+
+# (({[%%%(({[=======================================================================================================================]}))%%%]}))
+func damage() -> void:
+	var d_primary: Color = Color(randf(), randf(), randf())
+	var d_secondary: Color = Color(randf(), randf(), randf())
+	var d_tertiary: Color = Color(randf(), randf(), randf())
+	var d_background: Color = Color(randf(), randf(), randf())
+	
+	primary_color_set._current_primary = d_primary
+	primary_color_set._current_secondary = d_secondary
+	primary_color_set._current_tertiary = d_tertiary
+	primary_color_set._current_background = d_background.lerp(Color.BLACK, 0.5)
+	
+	secondary_color_set._current_primary = d_primary
+	secondary_color_set._current_secondary = d_secondary
+	secondary_color_set._current_tertiary = d_tertiary
+	secondary_color_set._current_background = d_background.lerp(Color.BLACK, 0.5)
+
 func update_reticle(camera_rig: CameraRig, character: Character) -> void:
 	if reticle.get_surface_override_material(0).albedo_texture != character.gun_base.data.reticle:
 		reticle.get_surface_override_material(0).albedo_texture = character.gun_base.data.reticle

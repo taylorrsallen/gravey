@@ -5,16 +5,18 @@ signal dealt_damage(body: PhysicsBody3D)
 @export var active: bool = true
 @export var damage_on_impact: bool = true
 @export var damage_data: DamageData
-@export var source: Node
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
+func _physics_process(delta: float) -> void:
+	if !active: return
+	var overlaps = get_overlapping_bodies()
+	if overlaps.is_empty(): return
+	_on_body_entered(overlaps.pick_random())
+
 func _on_body_entered(body: PhysicsBody3D) -> void:
 	if active && body is DamageableArea3D:
-		if damage_on_impact:
-			if is_instance_valid(source):
-				body.damage(damage_data, source)
-			else:
-				body.damage_sourceless(damage_data)
+		body.damage(damage_data, null)
+		active = false
 		dealt_damage.emit(body)
