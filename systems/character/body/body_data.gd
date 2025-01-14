@@ -16,6 +16,9 @@ enum BodyRole {
 @export var max_shields: float
 @export var shields_per_second: float
 
+@export var melee_force: float
+@export var melee_slow: float
+
 @export_category("Movement")
 @export var weight: float = 1.0
 @export var crouch_speed: float = 4.5
@@ -35,3 +38,7 @@ enum BodyRole {
 @export var max_desired_distance: float = 20.0
 @export var firing_range: float = 30.0
 @export var melee_range: float = 1.0
+
+@export var random_sounds: SoundPoolData
+@export var collision_layer: int = 2
+@export var collision_mask: int = 3

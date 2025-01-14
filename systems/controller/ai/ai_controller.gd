@@ -6,16 +6,14 @@ class_name AIController extends Node
 @export var shots_per_second: float = 0.1
 var shots_timer: float
 
-@export var min_desired_distance: float = 10.0
-@export var max_desired_distance: float = 20.0
-@export var firing_range: float = 30.0
-@export var melee_range: float
-
 @export var die_with_character: bool = true: set = _set_die_with_character
 
 var target_character: Character
 
 @export var metadata: Dictionary
+
+var random_sound_time: float = 5.0
+var random_sound_timer: float
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _set_die_with_character(_die_with_character: bool) -> void:
@@ -31,16 +29,14 @@ func _on_character_died(_character: Character):
 
 func _set_character(_character: Character) -> void:
 	character = _character
-	min_desired_distance = character.body_base.body_data.min_desired_distance
-	max_desired_distance = character.body_base.body_data.max_desired_distance
-	firing_range = character.body_base.body_data.firing_range
-	melee_range = character.body_base.body_data.melee_range
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _ready() -> void:
 	set_physics_process(false)
 	call_deferred("_init_navigation")
 	die_with_character = die_with_character
+	
+	random_sound_timer = randf_range(0.0, random_sound_time)
 
 func _init_navigation() -> void:
 	await get_tree().physics_frame
@@ -49,6 +45,12 @@ func _init_navigation() -> void:
 func _physics_process(delta: float) -> void:
 	if !multiplayer.is_server(): return
 	if !is_instance_valid(character): return
+	
+	random_sound_timer += delta * randf_range(0.6, 1.0)
+	if random_sound_timer >= random_sound_time:
+		random_sound_timer -= random_sound_time
+		var sound: SoundReferenceData = character.body_base.body_data.random_sounds.pool.pick_random()
+		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, character.global_position)
 	
 	character.physics_update(delta)
 	_find_target_character()
@@ -84,7 +86,9 @@ func _find_target_character() -> void:
 	target_character = closest_player_character
 
 func _update_target_character(delta: float) -> void:
-	if !is_instance_valid(target_character): return
+	if !is_instance_valid(target_character):
+		character.world_move_input = Vector3.ZERO
+		return
 	
 	var look_transform: Transform3D = Transform3D(Basis.IDENTITY, character.global_position)
 	look_transform = look_transform.looking_at(target_character.global_position)
@@ -104,10 +108,12 @@ func _update_target_character(delta: float) -> void:
 	var result: Dictionary = space_state.intersect_ray(query)
 	
 	if result.has("collider") && is_instance_valid(result["collider"]) && result["collider"] == target_character:
-		should_move_closer = distance_to_target > max_desired_distance
-		should_fire = distance_to_target <= firing_range
-	else:
+		should_move_closer = distance_to_target > character.body_base.body_data.max_desired_distance
+		should_fire = distance_to_target <= character.body_base.body_data.firing_range
+	elif character.body_base.body_data.firing_range > 0.0:
 		should_move_closer = true
+	else:
+		should_move_closer = distance_to_target > character.body_base.body_data.max_desired_distance
 	
 	if should_move_closer:
 		character.navigation_agent_3d.target_position = target_character.global_position
@@ -116,7 +122,7 @@ func _update_target_character(delta: float) -> void:
 		character.world_move_input.y = 0.0
 		character.world_move_input = character.world_move_input.normalized()
 		character.face_direction(character.world_move_input, delta)
-	elif distance_to_target < min_desired_distance:
+	elif distance_to_target < character.body_base.body_data.min_desired_distance:
 		character.world_move_input = character.global_position - target_character.global_position
 		character.world_move_input.y = 0.0
 		character.world_move_input = character.world_move_input.normalized()
@@ -125,7 +131,7 @@ func _update_target_character(delta: float) -> void:
 		character.face_direction(target_character.global_position - character.global_position, delta)
 		character.world_move_input = Vector3.ZERO
 	
-	if character.global_position.distance_to(target_character.global_position) <= melee_range: should_melee = true
+	if character.global_position.distance_to(target_character.global_position) <=character.body_base.body_data. melee_range: should_melee = true
 	
 	if should_fire && !should_melee:
 		shots_timer += randf_range(delta, delta * 0.5)

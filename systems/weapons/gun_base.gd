@@ -188,6 +188,7 @@ func reload() -> void:
 func interrupt_reload() -> void:
 	reload_timer = 0.0
 	reloading = false
+	amount_to_reload = 0
 
 func cycle_fire_mode() -> void:
 	fire_mode_index = (fire_mode_index + 1) % data.fire_modes.size()

@@ -13,6 +13,8 @@ class_name VehicleBase extends Node3D
 @export var start_vehicle: bool
 @export var can_exit: bool = true
 
+@export var target_seat_rotation: Vector3
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _enter_tree() -> void:
 	set_multiplayer_authority(get_parent().get_multiplayer_authority())

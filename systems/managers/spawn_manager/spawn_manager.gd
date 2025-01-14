@@ -55,6 +55,7 @@ func _spawn_server_owned_enemy(body_id: int, metadata: Dictionary, global_transf
 	var character: Character = _spawn_server_owned_character(body_id, metadata, global_transform)
 	ai_controller.character = character
 	Util.main.npcs.add_child(ai_controller, true)
+	ai_controller.character = character
 	return ai_controller
 
 func spawn_equippable(id: int, metadata: Dictionary, global_transform: Transform3D, lin_vel: Vector3 = Vector3.ZERO, ang_vel: Vector3 = Vector3.ZERO) -> EquippableBase:

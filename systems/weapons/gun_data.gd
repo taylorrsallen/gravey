@@ -24,6 +24,7 @@ enum Hands {
 @export var name: String
 @export var reticle: Texture2D
 @export var ammo_per_row: int
+@export var icon: Texture2D
 
 @export_category("Effects")
 @export var fire_sound_pool: SoundPoolData

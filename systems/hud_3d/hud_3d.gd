@@ -8,6 +8,8 @@ class_name HUD3D extends Node3D
 @onready var health_display: AmmoDisplay = $HealthDisplay
 @onready var shield_display: AmmoDisplay = $ShieldDisplay
 @onready var interact_prompt: Label3D = $InteractPrompt
+@onready var fire_mode_display: Node3D = $FireModeDisplay
+@onready var ammo_stock_widget: Node3D = $AmmoStockWidget
 
 @onready var ammo_stock_counter: Label3D = $AmmoStockWidget/AmmoStockCounter
 @onready var ammo_stock_icon: AmmoRowMesh = $AmmoStockWidget/Node3D/AmmoStockIcon
@@ -20,11 +22,25 @@ class_name HUD3D extends Node3D
 @onready var full_auto_back: Label3D = $FireModeDisplay/FullAutoBack
 @onready var full_auto_front: Label3D = $FireModeDisplay/FullAutoBack/FullAutoFront
 
-@onready var text_foreground_elements: Array[Label3D] = [single_front, semi_auto_front, full_auto_front, ammo_stock_counter, interact_prompt]
-@onready var text_background_elements: Array[Label3D] = [single_back, semi_auto_back, full_auto_back]
+@onready var inventory_icon_0: MeshInstance3D = $WeaponSelection/InventoryIcon0
+@onready var inventory_icon_1: MeshInstance3D = $WeaponSelection/InventoryIcon1
+@onready var inventory_icon_2: MeshInstance3D = $WeaponSelection/InventoryIcon2
+
+@onready var inventory_icons: Array[MeshInstance3D] = [inventory_icon_0, inventory_icon_1, inventory_icon_2]
+
+@onready var inventory_icon_text_back_0: Label3D = $WeaponSelection/InventoryIcon0/InventoryIconTextBack0
+@onready var inventory_icon_text_front_0: Label3D = $WeaponSelection/InventoryIcon0/InventoryIconTextBack0/InventoryIconTextFront0
+@onready var inventory_icon_text_back_1: Label3D = $WeaponSelection/InventoryIcon1/InventoryIconTextBack1
+@onready var inventory_icon_text_front_1: Label3D = $WeaponSelection/InventoryIcon1/InventoryIconTextBack1/InventoryIconTextFront1
+@onready var inventory_icon_text_back_2: Label3D = $WeaponSelection/InventoryIcon2/InventoryIconTextBack2
+@onready var inventory_icon_text_front_2: Label3D = $WeaponSelection/InventoryIcon2/InventoryIconTextBack2/InventoryIconTextFront2
+
+@onready var text_foreground_elements: Array[Label3D] = [single_front, semi_auto_front, full_auto_front, ammo_stock_counter, interact_prompt, inventory_icon_text_front_0, inventory_icon_text_front_1, inventory_icon_text_front_2]
+@onready var text_background_elements: Array[Label3D] = [single_back, semi_auto_back, full_auto_back, inventory_icon_text_back_0, inventory_icon_text_back_1, inventory_icon_text_back_2]
 
 @export var primary_color_set: ColorSet
 @export var secondary_color_set: ColorSet
+@export var empty_inventory_icon: Texture2D
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _physics_process(delta: float) -> void:
@@ -32,23 +48,37 @@ func _physics_process(delta: float) -> void:
 	secondary_color_set.update(delta)
 	
 	reticle.get_surface_override_material(0).albedo_color = primary_color_set.get_primary()
+	
 	shield_display.live_ammo_color = primary_color_set.get_primary()
 	shield_display.background_ammo_color = primary_color_set.get_background()
 	health_display.live_ammo_color = secondary_color_set.get_primary()
 	health_display.background_ammo_color = secondary_color_set.get_background()
+	
 	radar.get_surface_override_material(0).albedo_color = primary_color_set.get_secondary()
+	
 	ammo_stock_icon.get_surface_override_material(0).albedo_color = primary_color_set.get_primary()
 	ammo_stock_border.get_surface_override_material(0).albedo_color = primary_color_set.get_primary()
 	ammo_display.live_ammo_color = primary_color_set.get_primary()
 	ammo_display.background_ammo_color = primary_color_set.get_background()
+	
+	inventory_icon_0.get_surface_override_material(0).albedo_color = primary_color_set.get_primary()
+	inventory_icon_1.get_surface_override_material(0).albedo_color = primary_color_set.get_primary()
+	inventory_icon_2.get_surface_override_material(0).albedo_color = primary_color_set.get_primary()
 	
 	for i in text_background_elements.size():
 		text_foreground_elements[i].modulate = primary_color_set.get_primary()
 		text_foreground_elements[i].modulate.a8 = 100
 		text_background_elements[i].modulate = primary_color_set.get_background()
 		text_background_elements[i].modulate.a8 = 100
+
+# (({[%%%(({[=======================================================================================================================]}))%%%]}))
+func set_inventory_slot(slot: int, gun_data_id: int) -> void:
+	if gun_data_id == 0:
+		inventory_icons[slot].get_surface_override_material(0).albedo_texture = empty_inventory_icon
+		return
 	
-	
+	var gun_data: GunData = Util.GUN_DATABASE.database[gun_data_id - 1]
+	inventory_icons[slot].get_surface_override_material(0).albedo_texture = gun_data.icon
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func damage() -> void:

@@ -28,7 +28,6 @@ enum CharacterFlag {
 # COMPOSITION
 @onready var navigation_agent_3d: NavigationAgent3D = $NavigationAgent3D
 @onready var nav_collider: CollisionShape3D = $NavCollider
-@onready var spring_ray: RayCast3D = $NavCollider/SpringRay
 @onready var body_container: Node3D = $BodyContainer
 @onready var body_base: BodyBase = $BodyContainer/BodyBase
 
@@ -78,6 +77,11 @@ var move_direction: Vector3
 @export var jog_speed: float = 2.5
 @export var sprint_speed: float = 8.0
 var current_speed: float = walk_speed
+
+@export var target_speed_multiplier: float = 1.0
+@export var speed_multiplier: float
+@export var speed_recharge_time: float = 1.5
+@export var speed_recharge_timer: float
 
 @export var jump_velocity: float = 4.5
 
@@ -146,6 +150,9 @@ func _on_body_changed() -> void:
 	walk_speed = body_base.body_data.walk_speed
 	jog_speed = body_base.body_data.jog_speed
 	sprint_speed = body_base.body_data.sprint_speed
+	
+	collision_layer = body_base.body_data.collision_layer
+	collision_mask = body_base.body_data.collision_mask
 
 func get_weapon_hold_offset() -> Vector3:
 	if gun_base.data:
@@ -163,6 +170,7 @@ func _ready() -> void:
 	
 	if is_multiplayer_authority():
 		inventory.init()
+		set_active_inventory_slot_weapon()
 		
 		## TODO: TEMP
 		#body_base.hide()
@@ -192,14 +200,18 @@ func physics_update(delta: float) -> void:
 	else:
 		gun_base.show()
 	
-	if !vehicle:
+	if !is_instance_valid(vehicle):
 		_update_movement(delta)
 		_update_aim(delta)
 	else:
 		_send_vehicle_inputs(delta)
 		vehicle.update(delta)
-		linear_velocity = Vector3.ZERO
-		global_position = vehicle.seat.global_position
+		
+		# Updating the vehicle may cause a forced ejection, so we need to check that we are still in the vehicle before updating our position
+		if is_instance_valid(vehicle):
+			linear_velocity = Vector3.ZERO
+			global_position = vehicle.seat.global_position
+		#global_transform = vehicle.seat.global_transform
 	
 	_update_stats(delta)
 
@@ -247,6 +259,10 @@ func _update_stats(delta: float) -> void:
 		SoundManager.play_pitched_3d_sfx(12, SoundDatabase.SoundType.SFX_EXPLOSION, global_position)
 	elif shields > 0.0 && shields_down:
 		shields_down = false
+	
+	speed_recharge_timer = clampf(speed_recharge_time + delta, 0.0, speed_recharge_time)
+	if speed_recharge_timer == speed_recharge_time:
+		speed_multiplier = move_toward(speed_multiplier, target_speed_multiplier, delta)
 
 func _update_aim(delta: float) -> void:
 	if !is_multiplayer_authority(): return
@@ -319,6 +335,8 @@ func _update_movement(delta: float) -> void:
 		current_speed = sprint_speed
 	else:
 		current_speed = jog_speed
+	
+	current_speed *= speed_multiplier
 	
 	if is_flag_on(CharacterFlag.NOCLIP):
 		_update_movement_noclip(delta)
@@ -430,14 +448,19 @@ func _update_upright_force() -> void:
 	constant_torque = (axis * (angle * upright_spring_strength)) - (angular_velocity * upright_spring_damper)
 
 func _update_ride_force() -> void:
-	if spring_ray.is_colliding():
-		var hit_point: Vector3 = spring_ray.get_collision_point()
-		var hit_toi: float = (hit_point - spring_ray.global_position).length()
-		var other_collider: Node3D = spring_ray.get_collider()
+	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(global_position, global_position - Vector3.UP * 1.75, 1)
+	var result: Dictionary = space_state.intersect_ray(query)
+	
+	if !result.is_empty():
+		var hit_point: Vector3 = result["position"]
+		var hit_toi: float = (hit_point - global_position).length()
+		var other_collider: Node3D = result["collider"]
+		var normal: Vector3 = result["normal"]
 		
 		if hit_toi <= ride_height + ride_height * 0.1:
 			# Close enough to be grounded
-			if spring_ray.get_collision_normal().y < max_ground_angle:
+			if normal.y < max_ground_angle:
 				set_flag_off(CharacterFlag.GROUNDED)
 			else:
 				set_flag_on(CharacterFlag.GROUNDED)
@@ -480,8 +503,12 @@ func _deal_damage(damage_strength: float, _area_id: int) -> void:
 	shields -= damage_to_shields
 	damage_left -= damage_to_shields
 	
-	if damage_left <= 0.0: return
+	if damage_left <= 0.0:
+		speed_multiplier = 0.25
+		return
 	
+	speed_multiplier = 0.1
+	speed_recharge_timer = 0.0
 	health -= damage_left
 	
 	if health <= 0.0: die()
@@ -514,13 +541,44 @@ func die() -> void:
 	queue_free()
 
 func equip(equippable: EquippableBase) -> void:
+	# Check for empty inventory slot, if found, equip weapon and place it in empty slot
+	for i in inventory.max_weapons:
+		if inventory.weapons[i] == 0:
+			switch_weapon(i)
+			
+			gun_base.data_id = equippable.gun_data_id
+			if equippable.metadata.has("rounds"): gun_base.rounds = equippable.metadata["rounds"]
+			if equippable.metadata.has("fire_mode_index"): gun_base.fire_mode_index = equippable.metadata["fire_mode_index"]
+			switch_weapon(i)
+			
+			equippable.destroy()
+			return
+	
+	# If no empty inventory slot found, swap with current slot
 	drop_weapon(-global_basis.z, Vector3.ZERO)
 	
 	gun_base.data_id = equippable.gun_data_id
-	
 	if equippable.metadata.has("rounds"): gun_base.rounds = equippable.metadata["rounds"]
 	if equippable.metadata.has("fire_mode_index"): gun_base.fire_mode_index = equippable.metadata["fire_mode_index"]
+	
 	equippable.destroy()
+	set_active_inventory_slot_weapon()
+	_on_weapon_changed()
+
+func set_active_inventory_slot_weapon() -> void:
+	inventory.weapons[inventory.active_weapon] = gun_base.data_id
+	inventory.weapons_fire_mode[inventory.active_weapon] = gun_base.fire_mode_index
+	inventory.weapons_ammo[inventory.active_weapon] = gun_base.rounds
+
+func switch_weapon(inventory_slot: int) -> void:
+	gun_base.interrupt_reload()
+	
+	set_active_inventory_slot_weapon()
+	
+	inventory.active_weapon = inventory_slot
+	gun_base.data_id = inventory.weapons[inventory_slot]
+	gun_base.fire_mode_index = inventory.weapons_fire_mode[inventory_slot]
+	gun_base.rounds = inventory.weapons_ammo[inventory_slot]
 	
 	_on_weapon_changed()
 
@@ -565,7 +623,15 @@ func board_vehicle(_vehicle: VehicleBase) -> void:
 
 func exit_vehicle() -> void:
 	vehicle.exit()
-	vehicle.free()
+	vehicle.queue_free()
+	SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, vehicle.id, vehicle.metadata, vehicle.global_transform)
+	
+	global_position = vehicle.seat.global_position
+	global_basis = Basis.IDENTITY
+	gun_barrel_ik_target.global_position = global_position
+	l_hand_ik_target.global_position = global_position
+	r_hand_ik_target.global_position = global_position
+	
 	vehicle = null
 	in_vehicle = false
 

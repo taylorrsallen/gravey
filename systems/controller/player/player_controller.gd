@@ -55,7 +55,7 @@ var device_assigned: int = -1
 ## INTERACTABLE
 @export var focused_equippable: EquippableBase
 @export var desire_to_equip: float
-@export var max_desire_to_equip: float = 0.65
+@export var max_desire_to_equip: float = 0.4
 @export var successfully_equipped_with_press: bool
 
 @export var focused_interactable: InteractableBase
@@ -166,7 +166,6 @@ func _update_character_focused_interactable() -> void:
 func _update_character_focused_interactable_action() -> void:
 	if Input.is_action_just_pressed("equip_" + str(local_id)):
 		if is_instance_valid(character.vehicle) && character.vehicle.can_exit:
-			SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, character.vehicle.id, character.vehicle.metadata, character.vehicle.global_transform)
 			character.exit_vehicle()
 		else:
 			if !is_instance_valid(focused_interactable): return
@@ -202,7 +201,7 @@ func _update_character_focused_equippable() -> void:
 	focused_equippable = closest_result
 
 func _update_character_equip_action() -> void:
-	if !is_instance_valid(focused_equippable) || desire_to_equip != max_desire_to_equip: return
+	if !is_instance_valid(focused_equippable) || desire_to_equip != max_desire_to_equip || successfully_equipped_with_press: return
 	desire_to_equip = 0.0
 	character.equip(focused_equippable)
 	focused_equippable = null
@@ -256,11 +255,18 @@ func _update_character_ik_targets(delta: float) -> void:
 		character.gun_barrel_look_target = camera_rig.camera_3d.global_position + camera_rig.get_camera_forward() * 100.0
 	
 	if is_instance_valid(character.vehicle):
-		character.face_direction(-character.vehicle.global_basis.z, delta)
+		character.face_direction(-character.vehicle.seat.global_basis.z, delta)
 	else:
 		character.face_direction(camera_rig.get_yaw_forward(), delta)
 
 func _update_character_input(delta: float) -> void:
+	if Input.is_action_just_pressed("1_" + str(local_id)):
+		character.switch_weapon(0)
+	elif Input.is_action_just_pressed("2_" + str(local_id)):
+		character.switch_weapon(1)
+	elif Input.is_action_just_pressed("3_" + str(local_id)):
+		character.switch_weapon(2)
+	
 	if Input.is_action_just_pressed("melee_" + str(local_id)): character.melee()
 	
 	if Input.is_action_just_pressed("reload_" + str(local_id)): character.try_reload()
@@ -268,6 +274,7 @@ func _update_character_input(delta: float) -> void:
 	if Input.is_action_pressed("equip_" + str(local_id)):
 		desire_to_equip = clampf(desire_to_equip + delta, 0.0, max_desire_to_equip)
 	else:
+		successfully_equipped_with_press = false
 		desire_to_equip = 0.0
 	
 	if Input.is_action_pressed("sprint_" + str(local_id)):
@@ -308,16 +315,28 @@ func spawn_character() -> void:
 	_on_character_weapon_changed()
 
 func _on_character_weapon_changed() -> void:
-	var bullet_data: BulletData = Util.BULLET_DATABASE.database[character.gun_base.data.bullet_id]
+	if character.gun_base.data_id == 0:
+		hud_3d.fire_mode_display.hide()
+		hud_3d.ammo_stock_widget.hide()
+		hud_3d.reticle.hide()
+	else:
+		hud_3d.fire_mode_display.show()
+		hud_3d.ammo_stock_widget.show()
+		hud_3d.reticle.show()
+		
+		var bullet_data: BulletData = Util.BULLET_DATABASE.database[character.gun_base.data.bullet_id]
+		
+		hud_3d.ammo_display.max_ammo = character.gun_base.data.capacity
+		hud_3d.ammo_display.ammo_per_row = character.gun_base.data.ammo_per_row
+		hud_3d.ammo_display.bullet_icon = bullet_data.icon
+		hud_3d.ammo_display.regenerate_ammo_meshes()
+		hud_3d.ammo_display.ammo = character.gun_base.rounds
+		hud_3d.set_ammo_stock_icon(bullet_data.icon)
+		hud_3d.set_available_fire_modes_displayed(character.gun_base.data.fire_modes)
+		hud_3d.set_fire_mode_displayed(character.gun_base.get_fire_mode())
 	
-	hud_3d.ammo_display.max_ammo = character.gun_base.data.capacity
-	hud_3d.ammo_display.ammo_per_row = character.gun_base.data.ammo_per_row
-	hud_3d.ammo_display.bullet_icon = bullet_data.icon
-	hud_3d.ammo_display.regenerate_ammo_meshes()
-	hud_3d.ammo_display.ammo = character.gun_base.rounds
-	hud_3d.set_ammo_stock_icon(bullet_data.icon)
-	hud_3d.set_available_fire_modes_displayed(character.gun_base.data.fire_modes)
-	hud_3d.set_fire_mode_displayed(character.gun_base.get_fire_mode())
+	for i in character.inventory.max_weapons:
+		hud_3d.set_inventory_slot(i, character.inventory.weapons[i])
 
 func _on_character_damaged() -> void:
 	hud_3d.damage()
@@ -512,6 +531,9 @@ static func _assign_default_keyboard_controls(player_id: int) -> void:
 	_assign_key_action_event(player_id, "fire_mode_toggle", KEY_T)
 	_assign_key_action_event(player_id, "equip", KEY_E)
 	_assign_key_action_event(player_id, "jump", KEY_SPACE)
+	_assign_key_action_event(player_id, "1", KEY_1)
+	_assign_key_action_event(player_id, "2", KEY_2)
+	_assign_key_action_event(player_id, "3", KEY_3)
 	#_assign_key_action_event(player_id, "sprint", KEY_SHIFT)
 	#_assign_key_action_event(player_id, "interact", KEY_E)
 	#_assign_key_action_event(player_id, "recipes", KEY_TAB)

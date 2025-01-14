@@ -281,6 +281,26 @@ equip_3={
 "deadzone": 0.5,
 "events": []
 }
+1_0={
+"deadzone": 0.2,
+"events": []
+}
+2_0={
+"deadzone": 0.2,
+"events": []
+}
+3_0={
+"deadzone": 0.2,
+"events": []
+}
+4_0={
+"deadzone": 0.2,
+"events": []
+}
+5_0={
+"deadzone": 0.2,
+"events": []
+}
 
 [layer_names]
 
@@ -289,3 +309,4 @@ equip_3={
 3d_physics/layer_3="DAMAGEABLE_AREA"
 3d_physics/layer_4="EQUIPPABLE"
 3d_physics/layer_5="FOCUS_INTERACTABLE"
+3d_physics/layer_6="PLAYER_NAVIGATION"
