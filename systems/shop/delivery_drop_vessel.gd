@@ -84,4 +84,5 @@ func land() -> void:
 				var bullet_data: BulletData = Util.BULLET_DATABASE.database[shop_item_data.id]
 				SpawnManager.spawn_pickup(shop_item_data.id, { "ammo" = bullet_data.shop_ammo_box_quantity }, item_transform)
 	
+	VfxManager.spawn_vfx(8, global_position + Vector3.UP * 0.4, global_basis)
 	queue_free()

@@ -91,4 +91,13 @@ func set_melee_active(active: bool) -> void:
 
 func will_die_from_damage(damage_data: DamageData, area_id: int) -> bool:
 	return get_parent().will_die_from_damage(damage_data, area_id)
-	
+
+func deactivate() -> void:
+	for child in get_children(): _deactivate_recursive(child)
+
+func _deactivate_recursive(parent: Node) -> void:
+	if parent is DamageableArea3D:
+		parent.collision_layer = 0
+		parent.collision_mask = 0
+	else:
+		for child in parent.get_children(): _deactivate_recursive(child)

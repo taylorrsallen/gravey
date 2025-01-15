@@ -98,3 +98,6 @@ func get_matter_id_for_damageable_area_3d(area_id: int) -> int:
 
 func will_die_from_damage(damage_data: DamageData, area_id: int) -> bool:
 	return get_parent().get_parent().will_die_from_damage(damage_data, area_id)
+
+func deactivate() -> void:
+	if is_instance_valid(body_model): body_model.deactivate()

@@ -26,9 +26,9 @@ func try_place_order(laser_point: Vector3, laser_valid: bool) -> bool:
 	
 	var delivery_drop_vessel: DeliveryDropVessel = DELIVERY_DROP_VESSEL.instantiate()
 	delivery_drop_vessel.delivery_target = laser_point
-	delivery_drop_vessel.contents = cart
+	delivery_drop_vessel.contents = cart.duplicate(true)
 	delivery_drop_vessel.position = delivery_spawn_point
-	get_parent().owned_objects.add_child(delivery_drop_vessel)
+	get_parent().owned_objects.add_child(delivery_drop_vessel, true)
 	
 	return true
 

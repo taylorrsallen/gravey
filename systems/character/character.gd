@@ -570,6 +570,7 @@ func die() -> void:
 		hide()
 		collision_layer = 0
 		collision_mask = 0
+		body_base.deactivate()
 		await get_tree().create_timer(10.0).timeout
 		queue_free()
 	else:
@@ -579,6 +580,7 @@ func die() -> void:
 		hide()
 		collision_layer = 0
 		collision_mask = 0
+		body_base.deactivate()
 
 @rpc("any_peer", "call_remote", "reliable")
 func _rpc_die() -> void:

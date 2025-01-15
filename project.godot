@@ -318,3 +318,4 @@ inventory_0={
 3d_physics/layer_4="EQUIPPABLE"
 3d_physics/layer_5="FOCUS_INTERACTABLE"
 3d_physics/layer_6="PLAYER_NAVIGATION"
+3d_physics/layer_7="VFX"
