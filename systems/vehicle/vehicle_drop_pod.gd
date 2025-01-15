@@ -31,10 +31,6 @@ func update(delta: float) -> void:
 	
 	velocity = velocity.move_toward((drop_target - global_position).normalized() * max_speed, delta * thrust_strength)
 	
-	if global_position.distance_to(drop_target) < 0.5:
-		dropping = false
-		can_exit = true
-	
 	#look_at(global_position + velocity.normalized(), basis.z * randf_range(0.9, 1.1))# + (drop_target - global_position).normalized())
 	
 	if drop_target.distance_to(global_position) < 10.0:

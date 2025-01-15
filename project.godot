@@ -301,6 +301,14 @@ equip_3={
 "deadzone": 0.2,
 "events": []
 }
+drop_0={
+"deadzone": 0.2,
+"events": []
+}
+inventory_0={
+"deadzone": 0.2,
+"events": []
+}
 
 [layer_names]
 

@@ -88,3 +88,7 @@ func get_matter_id_for_damageable_area_3d(area_id: int) -> int:
 func set_melee_active(active: bool) -> void:
 	if is_instance_valid(melee_damaging_area_3d):
 		melee_damaging_area_3d.active = active
+
+func will_die_from_damage(damage_data: DamageData, area_id: int) -> bool:
+	return get_parent().will_die_from_damage(damage_data, area_id)
+	

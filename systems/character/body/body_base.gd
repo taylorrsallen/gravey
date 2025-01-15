@@ -95,3 +95,6 @@ func _on_damageable_area_3d_damaged(damage_data: DamageData, area_id: int, sourc
 
 func get_matter_id_for_damageable_area_3d(area_id: int) -> int:
 	return get_parent().get_parent().get_matter_id_for_damageable_area_3d(area_id)
+
+func will_die_from_damage(damage_data: DamageData, area_id: int) -> bool:
+	return get_parent().get_parent().will_die_from_damage(damage_data, area_id)

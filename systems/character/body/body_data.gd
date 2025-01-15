@@ -9,6 +9,8 @@ enum BodyRole {
 }
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+@export var name: String
+
 @export_category("Combat")
 @export var stagger_threshold: float = 4.0
 @export var max_health: float

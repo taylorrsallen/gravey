@@ -24,6 +24,7 @@ const ID_BUTTON: PackedScene = preload("res://systems/gui/id_button.scn")
 @export var debug: bool = false
 
 @onready var start_game: Button = $VBoxContainer/StartGame
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _ready() -> void:
 	network_manager.server_started.connect(_on_server_started)
@@ -44,6 +45,21 @@ func _ready() -> void:
 		multiplayer_spawner.add_spawnable_scene(vehicle_data.scene.resource_path)
 	
 	wave_manager.init()
+
+func _physics_process(_delta: float) -> void:
+	var player_controller: PlayerController = network_manager.try_get_local_player_controller(0)
+	
+	if !is_instance_valid(player_controller):
+		Util.main.v_box_container.show()
+		Util.main.peer_connections_box.show()
+	else:
+		if player_controller.is_flag_on(PlayerController.PlayerControllerFlag.CURSOR_VISIBLE):
+			if !player_controller.shop.shop_interface.visible:
+				Util.main.v_box_container.show()
+				Util.main.peer_connections_box.show()
+		else:
+			Util.main.v_box_container.hide()
+			Util.main.peer_connections_box.hide()
 
 func _on_map_id_button_pressed(id: int) -> void:
 	level.map_id = id
@@ -71,6 +87,9 @@ func disconnect_network() -> void:
 	network_manager.disconnect_network()
 	EventBus.end_game()
 	level.map_id = 0
+
+func is_menu_visible() -> bool:
+	return v_box_container.visible
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _refresh_ui() -> void:

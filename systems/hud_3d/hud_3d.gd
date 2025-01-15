@@ -78,7 +78,7 @@ func set_inventory_slot(slot: int, gun_data_id: int) -> void:
 		return
 	
 	var gun_data: GunData = Util.GUN_DATABASE.database[gun_data_id - 1]
-	inventory_icons[slot].get_surface_override_material(0).albedo_texture = gun_data.icon
+	inventory_icons[slot].get_surface_override_material(0).albedo_texture = gun_data.hud_icon
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func damage() -> void:

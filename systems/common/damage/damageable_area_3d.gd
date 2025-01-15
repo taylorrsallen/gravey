@@ -16,3 +16,9 @@ func get_matter_id() -> int:
 		return source.get_matter_id_for_damageable_area_3d(id)
 	else:
 		return get_parent().get_matter_id_for_damageable_area_3d(id)
+
+func will_die_from_damage(damage_data: DamageData) -> bool:
+	if is_instance_valid(source):
+		return source.will_die_from_damage(damage_data, id)
+	else:
+		return get_parent().will_die_from_damage(damage_data, id)

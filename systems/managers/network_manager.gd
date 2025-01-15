@@ -110,12 +110,14 @@ func try_get_player_controller(peer_id: int, player_id: int) -> PlayerController
 
 ## Returns null if the PeerConnection does not exist
 func try_get_local_peer_connection() -> PeerConnection:
+	if !multiplayer.multiplayer_peer: return null
 	var peer_connection: PeerConnection = get_node_or_null(str(multiplayer.get_unique_id()))
 	#if !peer_connection: printerr("Could not find PeerConnection<%s>" % str(peer_id))
 	return peer_connection
 
 ## Returns null if PlayerController does not exist
 func try_get_local_player_controller(player_id: int) -> PlayerController:
+	if !multiplayer.multiplayer_peer: return null
 	var peer_connection: PeerConnection = try_get_peer_connection(multiplayer.get_unique_id())
 	if !peer_connection: return null
 	return peer_connection.try_get_player_controller(player_id)

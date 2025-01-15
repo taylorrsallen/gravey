@@ -22,10 +22,10 @@ const SHADER_VIEW_SCN: PackedScene = preload("res://systems/controller/player/sh
 
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
-## DATA
+# DATA
 @export var local_id: int
 
-## INPUT
+# INPUT
 var controls_assigned: int = -1
 var device_assigned: int = -1
 
@@ -41,24 +41,37 @@ var device_assigned: int = -1
 @onready var owned_objects_spawner: MultiplayerSpawner = $OwnedObjects/MultiplayerSpawner
 @onready var hud_3d: HUD3D = $HUD3D
 @onready var multiplayer_spawner: MultiplayerSpawner = $OwnedObjects/MultiplayerSpawner
+@onready var shop: Shop = $Shop
+@onready var laser_pointer: Node3D = $LaserPointer
 
-## VIEW
+# VIEW
 @onready var camera_view_layer: CanvasLayer = $CameraViewLayer
 @export var splitscreen_view: SplitscreenView
 @onready var shader_view_layer: CanvasLayer = $ShaderViewLayer
 @export var shader_view: Control
 #@onready var menu_view: Control = $HUDViewLayer/MenuView
 
-## FLAGS
+# FLAGS
 @export var flags: int
 
-## INTERACTABLE
+# INTERACTABLE
 @export var focused_equippable: EquippableBase
 @export var desire_to_equip: float
 @export var max_desire_to_equip: float = 0.4
 @export var successfully_equipped_with_press: bool
 
 @export var focused_interactable: InteractableBase
+
+# GAME
+@export var points: int = 4000
+
+# SHOP
+@export var laser_designating: bool
+@export var laser_valid: bool
+@export var laser_point: Vector3
+@export var laser_length: float = 50.0
+@export var laser_valid_color: Color
+@export var laser_invalid_color: Color
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func is_flag_on(flag: PlayerControllerFlag) -> bool: return Util.is_flag_on(flags, flag)
@@ -90,35 +103,39 @@ func _ready() -> void:
 	label_3d.text = str(get_multiplayer_authority())
 
 func _physics_process(delta: float) -> void:
+	if laser_designating:
+		laser_pointer.show()
+		if laser_valid:
+			laser_pointer.get_child(0).get_surface_override_material(0).albedo_color = laser_valid_color
+		else:
+			laser_pointer.get_child(0).get_surface_override_material(0).albedo_color = laser_invalid_color
+	else:
+		laser_pointer.hide()
+	
 	if is_multiplayer_authority():
-		if Input.is_action_just_pressed("start_" + str(local_id)): toggle_cursor_visible()
+		if Input.is_action_just_pressed("start_" + str(local_id)):
+			if shop.shop_interface.visible:
+				shop.close_shop_interface()
+				set_cursor_captured()
+			else:
+				toggle_cursor_visible()
+		
+		if shop.shop_interface.visible:
+			if !is_flag_on(PlayerControllerFlag.CURSOR_VISIBLE): set_cursor_visible()
 		
 		if local_id == 0:
 			if !get_window().has_focus():
 				set_cursor_visible()
-			#elif menu_view.get_children().is_empty():
-				#if is_flag_on(PlayerControllerFlag.CURSOR_VISIBLE): set_cursor_captured()
-			#else:
-				#set_cursor_visible()
-		
-			#if Input.is_action_just_pressed("start_0"):
-				#if menu_view.get_children().is_empty():
-					#menu_view.add_child(START_MENU.instantiate())
-				#else:
-					#for child in menu_view.get_children():
-						#child.go_back()
-		
-		if is_flag_on(PlayerController.PlayerControllerFlag.CURSOR_VISIBLE):
-			Util.main.v_box_container.show()
-			Util.main.peer_connections_box.show()
-		else:
-			Util.main.v_box_container.hide()
-			Util.main.peer_connections_box.hide()
 		
 		_update_raw_inputs()
 		if !is_flag_on(PlayerControllerFlag.CURSOR_VISIBLE): _update_camera_look(delta)
 		
 		if is_instance_valid(character):
+			if character.dead:
+				camera_rig.anchor_node = null
+				character = null
+				return
+			
 			character.world_move_input = world_move_input
 			character.look_in_direction(camera_rig.camera_3d.global_basis, delta)
 			
@@ -129,6 +146,7 @@ func _physics_process(delta: float) -> void:
 			_update_character_focused_equippable()
 			_update_character_equip_action()
 			_update_character_ik_targets(delta)
+			_update_character_laser_pointer()
 			_update_character_input(delta)
 			_update_character_hud_3d()
 		else:
@@ -164,6 +182,8 @@ func _update_character_focused_interactable() -> void:
 		focused_interactable = null
 
 func _update_character_focused_interactable_action() -> void:
+	if laser_designating: return
+	
 	if Input.is_action_just_pressed("equip_" + str(local_id)):
 		if is_instance_valid(character.vehicle) && character.vehicle.can_exit:
 			character.exit_vehicle()
@@ -202,6 +222,7 @@ func _update_character_focused_equippable() -> void:
 
 func _update_character_equip_action() -> void:
 	if !is_instance_valid(focused_equippable) || desire_to_equip != max_desire_to_equip || successfully_equipped_with_press: return
+	if laser_designating: return
 	desire_to_equip = 0.0
 	character.equip(focused_equippable)
 	focused_equippable = null
@@ -227,7 +248,13 @@ func _update_character_hud_3d() -> void:
 	else:
 		hud_3d.ammo_display.ammo = 0
 	
-	if is_instance_valid(focused_interactable):
+	if laser_designating:
+		hud_3d.interact_prompt.show()
+		if laser_valid:
+			hud_3d.interact_prompt.text = "Press E to call in order"
+		else:
+			hud_3d.interact_prompt.text = "NO CLEARANCE"
+	elif is_instance_valid(focused_interactable):
 		if focused_interactable.get_parent() is VehicleBase:
 			hud_3d.interact_prompt.text = "Press E to get in " + "ERROR_VEHICLE_NOT_FOUND"
 			hud_3d.interact_prompt.show()
@@ -259,20 +286,61 @@ func _update_character_ik_targets(delta: float) -> void:
 	else:
 		character.face_direction(camera_rig.get_yaw_forward(), delta)
 
+func _update_character_laser_pointer() -> void:
+	if !laser_designating: return
+	
+	var space_state: PhysicsDirectSpaceState3D = character.get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(character.gun_barrel_ik_target.global_position, character.gun_barrel_ik_target.global_position - character.gun_barrel_ik_target.global_basis.z * laser_length, 5)
+	var result: Dictionary = space_state.intersect_ray(query)
+	
+	laser_pointer.global_transform = character.gun_barrel_ik_target.global_transform
+	laser_pointer.scale = Vector3.ONE
+	if result.is_empty():
+		laser_pointer.scale.z = 50.0
+		laser_valid = false
+	else:
+		laser_pointer.scale.z = (character.gun_barrel_ik_target.global_position - result["position"]).length()
+		laser_point = result["position"]
+		
+		var up_query = PhysicsRayQueryParameters3D.create(laser_point + Vector3.UP * 0.5, laser_point + Vector3.UP * 100.0, 1)
+		var up_result: Dictionary = space_state.intersect_ray(up_query)
+		
+		laser_valid = up_result.is_empty()
+
 func _update_character_input(delta: float) -> void:
 	if Input.is_action_just_pressed("1_" + str(local_id)):
+		laser_designating = false
 		character.switch_weapon(0)
 	elif Input.is_action_just_pressed("2_" + str(local_id)):
+		laser_designating = false
 		character.switch_weapon(1)
 	elif Input.is_action_just_pressed("3_" + str(local_id)):
+		laser_designating = false
 		character.switch_weapon(2)
 	
-	if Input.is_action_just_pressed("melee_" + str(local_id)): character.melee()
+	if Input.is_action_just_pressed("inventory_" + str(local_id)):
+		laser_designating = false
+		if shop.shop_interface.visible:
+			shop.close_shop_interface()
+			set_cursor_captured()
+		else:
+			shop.open_shop_interface()
 	
-	if Input.is_action_just_pressed("reload_" + str(local_id)): character.try_reload()
+	if Input.is_action_just_pressed("melee_" + str(local_id)):
+		laser_designating = false
+		character.melee()
+	if Input.is_action_just_pressed("reload_" + str(local_id)):
+		laser_designating = false
+		character.try_reload()
+	if Input.is_action_just_pressed("drop_" + str(local_id)):
+		laser_designating = false
+		character.drop_weapon(camera_rig.get_yaw_forward() * 2.0, Vector3(randf_range(-5.0, 5.0), randf_range(-5.0, 5.0), randf_range(-5.0, 5.0)))
 	
 	if Input.is_action_pressed("equip_" + str(local_id)):
-		desire_to_equip = clampf(desire_to_equip + delta, 0.0, max_desire_to_equip)
+		if laser_designating:
+			if shop.try_place_order(laser_point, laser_valid): laser_designating = false
+		else:
+			desire_to_equip = clampf(desire_to_equip + delta, 0.0, max_desire_to_equip)
 	else:
 		successfully_equipped_with_press = false
 		desire_to_equip = 0.0
@@ -282,12 +350,16 @@ func _update_character_input(delta: float) -> void:
 	else:
 		character.set_sprinting(false)
 	
-	if Input.is_action_pressed("primary_" + str(local_id)):
-		character.try_fire_held_press(local_id, delta)
-	if Input.is_action_just_pressed("primary_" + str(local_id)):
-		character.try_fire_single_press(local_id, delta)
+	if !is_flag_on(PlayerControllerFlag.CURSOR_VISIBLE):
+		if Input.is_action_pressed("primary_" + str(local_id)):
+			laser_designating = false
+			character.try_fire_held_press(local_id, delta)
+		if Input.is_action_just_pressed("primary_" + str(local_id)):
+			laser_designating = false
+			character.try_fire_single_press(local_id, delta)
 	
 	if Input.is_action_just_pressed("fire_mode_toggle_" + str(local_id)):
+		laser_designating = false
 		character.gun_base.cycle_fire_mode()
 		hud_3d.set_fire_mode_displayed(character.gun_base.get_fire_mode())
 
@@ -311,6 +383,11 @@ func spawn_character() -> void:
 	character.set_body_id(0)
 	
 	character.body_base.hide()
+	character.gun_base.data_id = 1
+	character.inventory.ammo_stock[0] = 128
+	character.set_active_inventory_slot_weapon()
+	
+	character.apply_force(Vector3.UP * 800.0)
 	
 	_on_character_weapon_changed()
 
@@ -525,15 +602,19 @@ static func _assign_default_keyboard_controls(player_id: int) -> void:
 	_assign_mouse_button_action_event(player_id, "secondary", MOUSE_BUTTON_RIGHT)
 	#_assign_mouse_button_action_event(player_id, "zoom_in", MOUSE_BUTTON_WHEEL_UP)
 	#_assign_mouse_button_action_event(player_id, "zoom_out", MOUSE_BUTTON_WHEEL_DOWN)
+	_assign_key_action_event(player_id, "inventory", KEY_TAB)
 	_assign_key_action_event(player_id, "reload", KEY_R)
 	_assign_key_action_event(player_id, "melee", KEY_V)
 	_assign_key_action_event(player_id, "sprint", KEY_SHIFT)
 	_assign_key_action_event(player_id, "fire_mode_toggle", KEY_T)
 	_assign_key_action_event(player_id, "equip", KEY_E)
 	_assign_key_action_event(player_id, "jump", KEY_SPACE)
+	_assign_key_action_event(player_id, "drop", KEY_G)
 	_assign_key_action_event(player_id, "1", KEY_1)
 	_assign_key_action_event(player_id, "2", KEY_2)
 	_assign_key_action_event(player_id, "3", KEY_3)
+	_assign_key_action_event(player_id, "4", KEY_4)
+	_assign_key_action_event(player_id, "5", KEY_5)
 	#_assign_key_action_event(player_id, "sprint", KEY_SHIFT)
 	#_assign_key_action_event(player_id, "interact", KEY_E)
 	#_assign_key_action_event(player_id, "recipes", KEY_TAB)

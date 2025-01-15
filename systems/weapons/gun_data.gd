@@ -14,6 +14,10 @@ enum Hands {
 }
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+@export_category("Shop")
+@export var shop_icon: Texture2D
+@export var shop_point_cost: int
+
 @export_category("Model")
 @export var model: PackedScene
 @export var hold_offset: Vector3
@@ -24,7 +28,7 @@ enum Hands {
 @export var name: String
 @export var reticle: Texture2D
 @export var ammo_per_row: int
-@export var icon: Texture2D
+@export var hud_icon: Texture2D
 
 @export_category("Effects")
 @export var fire_sound_pool: SoundPoolData

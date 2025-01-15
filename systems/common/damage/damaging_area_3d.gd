@@ -9,7 +9,7 @@ signal dealt_damage(body: PhysicsBody3D)
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	if !active: return
 	var overlaps = get_overlapping_bodies()
 	if overlaps.is_empty(): return

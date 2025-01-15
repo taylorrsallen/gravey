@@ -99,6 +99,20 @@ static var main: Main
 	#return closest_controller
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+static func play_bullet_hit_effects(collider: Node3D, hit_point: Vector3, hit_basis: Basis = Basis.IDENTITY, bullet_data: BulletData = null) -> void:
+	if collider.has_method("get_matter_id"):
+		var matter_id: int = collider.get_matter_id()
+		var matter_data: MatterData = Util.MATTER_DATABASE.database[matter_id]
+		if matter_data.ballistic_hit_sfx_pool:
+			var hit_sound: SoundReferenceData = matter_data.ballistic_hit_sfx_pool.pool.pick_random()
+			SoundManager.play_pitched_3d_sfx(hit_sound.id, hit_sound.type, hit_point)
+		VfxManager.spawn_vfx(matter_data.ballistic_hit_vfx_id, hit_point, hit_basis)
+	elif bullet_data:
+		var sound: SoundReferenceData = bullet_data.generic_hit_sound_pool.pool.pick_random()
+		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, hit_point)
+		VfxManager.spawn_vfx(0, hit_point, hit_basis)
+
+# (({[%%%(({[=======================================================================================================================]}))%%%]}))
 static func set_flag(mask: int, flag: int, active: bool) -> int:
 	if active:
 		return set_flag_on(mask, flag)

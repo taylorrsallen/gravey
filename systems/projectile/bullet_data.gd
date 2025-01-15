@@ -1,6 +1,12 @@
 class_name BulletData extends Resource
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+@export_category("Shop")
+@export var shop_ammo_box_name: String
+@export var shop_ammo_box_quantity: int
+@export var shop_ammo_box_icon: Texture2D
+@export var shop_ammo_box_point_cost: int
+
 @export_category("Appearance")
 @export var icon: Texture2D
 @export var ammo_box_model: PackedScene

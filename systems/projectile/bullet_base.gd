@@ -40,21 +40,21 @@ func _physics_process(delta: float) -> void:
 	lifetime_timer += delta
 	if lifetime_timer >= data.lifetime: queue_free()
 
-func _hit(_point: Vector3, _normal: Vector3, collider: Node3D) -> void:
+func _hit(point: Vector3, _normal: Vector3, collider: Node3D) -> void:
 	if collider is DamageableArea3D:
-		var damage_data: DamageData = DamageData.new()
+		var player_controller: PlayerController = get_parent().get_parent()
+		# Headshot
+		if collider.id == 1 && collider.will_die_from_damage(data.damage_data):
+			player_controller.points += 10
+		elif collider.will_die_from_damage(data.damage_data):
+			player_controller.points += 5
+		else:
+			player_controller.points += 1
+		
 		collider.damage(data.damage_data, null)
+		
+		print(player_controller.points)
 	
-	if collider.has_method("get_matter_id"):
-		var matter_id: int = collider.get_matter_id()
-		var matter_data: MatterData = Util.MATTER_DATABASE.database[matter_id]
-		if matter_data.ballistic_hit_sfx_pool:
-			var hit_sound: SoundReferenceData = matter_data.ballistic_hit_sfx_pool.pool.pick_random()
-			SoundManager.play_pitched_3d_sfx(hit_sound.id, hit_sound.type, global_position)
-		VfxManager.spawn_vfx(matter_data.ballistic_hit_vfx_id, global_position, Basis.looking_at(global_position - previous_position))
-	else:
-		var sound: SoundReferenceData = data.generic_hit_sound_pool.pool.pick_random()
-		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, global_position)
-		VfxManager.spawn_vfx(0, global_position, Basis.looking_at(global_position - previous_position))
+	Util.play_bullet_hit_effects(collider, point, Basis.looking_at(point + global_basis.z), data)
 	
 	queue_free()

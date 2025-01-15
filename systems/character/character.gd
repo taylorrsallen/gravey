@@ -121,6 +121,9 @@ var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var melee_time: float = 0.5
 @export var melee_timer: float
 
+# DEATH
+@export var dead: bool
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func is_flag_on(flag: CharacterFlag) -> bool: return Util.is_flag_on(flags, flag)
 func set_flag_on(flag: CharacterFlag) -> void: flags = Util.set_flag_on(flags, flag)
@@ -183,6 +186,14 @@ func _physics_process(delta: float) -> void:
 	if !is_multiplayer_authority(): physics_update(delta)
 
 func physics_update(delta: float) -> void:
+	if is_multiplayer_authority() && global_position.y < -200.0:
+		print("[Peer %s]: Out of Bounds death" % multiplayer.get_unique_id())
+		die()
+	
+	if dead:
+		hide()
+		return
+	
 	if body_base.melee_target == 1.0:
 		melee_timer += delta
 		if melee_timer >= melee_time:
@@ -256,7 +267,7 @@ func _update_stats(delta: float) -> void:
 	if shields <= 0.0 && !shields_down:
 		shields_down = true
 		shields_charging = false
-		SoundManager.play_pitched_3d_sfx(12, SoundDatabase.SoundType.SFX_EXPLOSION, global_position)
+		if max_shields > 0.0: SoundManager.play_pitched_3d_sfx(12, SoundDatabase.SoundType.SFX_EXPLOSION, global_position)
 	elif shields > 0.0 && shields_down:
 		shields_down = false
 	
@@ -324,6 +335,13 @@ func set_gun_barrel_aim(_basis: Basis, offset: Vector3) -> void:
 			+ _basis.x * offset.x
 			+ _basis.y * offset.y
 			- _basis.z * offset.z)
+
+func will_die_from_damage(damage_data: DamageData, area_id: int) -> bool:
+	var damage: float = damage_data.damage_strength
+	if area_id == 1: damage *= 2.5
+	print("total_health: %s | total_damage: %s" % [health + shields, damage])
+	print("will die: %s" % ((health + shields) <= damage))
+	return (health + shields) <= damage
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _update_movement(delta: float) -> void:
@@ -492,15 +510,18 @@ func _update_ride_force() -> void:
 func _rpc_deal_damage(damage_strength: float, area_id: int) -> void:
 	_deal_damage(damage_strength, area_id)
 
-func _deal_damage(damage_strength: float, _area_id: int) -> void:
+func _deal_damage(damage_strength: float, area_id: int) -> void:
 	damaged.emit()
 	
-	shield_recharge_timer = shield_recharge_delay
-	shields_charging = false
+	if is_multiplayer_authority():
+		shield_recharge_timer = shield_recharge_delay
+		shields_charging = false
 	
 	var damage_left: float = damage_strength
+	if area_id == 1: damage_left *= 2.5
+	
 	var damage_to_shields: float = clampf(damage_strength, 0.0, shields)
-	shields -= damage_to_shields
+	if is_multiplayer_authority(): shields -= damage_to_shields
 	damage_left -= damage_to_shields
 	
 	if damage_left <= 0.0:
@@ -514,9 +535,10 @@ func _deal_damage(damage_strength: float, _area_id: int) -> void:
 	if health <= 0.0: die()
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
-func _on_damageable_area_3d_damaged(damage_data: DamageData, area_id: int, source: Node) -> void:
+func _on_damageable_area_3d_damaged(damage_data: DamageData, area_id: int, _source: Node) -> void:
 	if !is_multiplayer_authority():
 		_rpc_deal_damage.rpc_id(get_multiplayer_authority(), damage_data.damage_strength, area_id)
+		_deal_damage(damage_data.damage_strength, area_id)
 	else:
 		_deal_damage(damage_data.damage_strength, area_id)
 
@@ -530,15 +552,37 @@ func get_matter_id_for_damageable_area_3d(_area_id: int) -> int:
 # Actions
 ## Maybe you should just DIE
 func die() -> void:
-	drop_weapon(Vector3(randf_range(-2.0, 2.0), randf_range(2.0, 5.0), randf_range(-2.0, 2.0)), Vector3(randf_range(-10.0, 10.0), randf_range(-10.0, 10.0), randf_range(-10.0, 10.0)))
-	killed.emit(self)
-	inventory.drop_contents()
+	if dead: return
+	dead = true
 	
-	if is_instance_valid(vehicle):
-		SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, vehicle.id, vehicle.metadata, vehicle.global_transform)
-		exit_vehicle()
+	if is_multiplayer_authority():
+		drop_weapon(Vector3(randf_range(-2.0, 2.0), randf_range(2.0, 5.0), randf_range(-2.0, 2.0)), Vector3(randf_range(-10.0, 10.0), randf_range(-10.0, 10.0), randf_range(-10.0, 10.0)))
+		killed.emit(self)
+		inventory.drop_contents()
 
-	queue_free()
+		if is_instance_valid(vehicle):
+			SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, vehicle.id, vehicle.metadata, vehicle.global_transform)
+			exit_vehicle()
+		
+		_rpc_die.rpc()
+		set_physics_process(false)
+		set_process(false)
+		hide()
+		collision_layer = 0
+		collision_mask = 0
+		await get_tree().create_timer(10.0).timeout
+		queue_free()
+	else:
+		_rpc_die.rpc_id(get_multiplayer_authority())
+		set_physics_process(false)
+		set_process(false)
+		hide()
+		collision_layer = 0
+		collision_mask = 0
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_die() -> void:
+	die()
 
 func equip(equippable: EquippableBase) -> void:
 	# Check for empty inventory slot, if found, equip weapon and place it in empty slot
@@ -596,6 +640,7 @@ func drop_weapon(_lin_vel: Vector3, _ang_vel: Vector3) -> void:
 		_lin_vel,
 		_ang_vel)
 	gun_base.data_id = 0
+	set_active_inventory_slot_weapon()
 
 func melee() -> void:
 	if vehicle:
