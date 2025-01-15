@@ -174,9 +174,15 @@ func _update_camera_look(delta: float) -> void:
 
 func _update_character_focused_interactable() -> void:
 	var space_state: PhysicsDirectSpaceState3D = character.get_world_3d().direct_space_state
-	var query = PhysicsRayQueryParameters3D.create(character.global_position, character.global_position + camera_rig.get_camera_forward() * 4.0, 16)
+	var query = PhysicsRayQueryParameters3D.create(character.global_position, character.global_position + camera_rig.get_camera_forward() * 1.0, 17)
 	var result: Dictionary = space_state.intersect_ray(query)
-	if !result.is_empty() && result["collider"].get_parent() != character.vehicle && !result["collider"].get_parent().full:
+	
+	if result.is_empty():
+		focused_interactable = null
+		return
+	
+	var collider: Node3D = result["collider"]
+	if collider.get_parent() is VehicleBase && collider.get_parent() != character.vehicle && !collider.get_parent().full:
 		focused_interactable = result["collider"]
 	else:
 		focused_interactable = null
