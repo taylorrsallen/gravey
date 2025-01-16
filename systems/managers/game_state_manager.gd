@@ -15,7 +15,7 @@ var game_start_countdown: float = 5.0
 
 @export var drop_pod_spawners: Array[DropPodSpawner]
 
-@export var mission_player_count: int = 1: set = _set_mission_player_count
+@export var mission_player_count: int = 2: set = _set_mission_player_count
 @export var players_in_mission: int
 @export var player_characters_in_mission: Array[Character]
 @export var lives: int

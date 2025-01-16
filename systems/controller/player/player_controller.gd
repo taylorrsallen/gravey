@@ -177,6 +177,12 @@ func _update_camera_look(delta: float) -> void:
 	#gamepad_look_input.x = -gamepad_look_input.x
 	#look_movement += gamepad_look_input
 	
+	const camera_shake: float = 0.015
+	if is_instance_valid(character) && is_instance_valid(character.vehicle) && character.vehicle is VehicleDropPod && character.vehicle.dropping:
+		camera_rig.anchor_offset = camera_rig.camera_3d.global_basis.x * randf_range(-camera_shake, camera_shake) + camera_rig.camera_3d.global_basis.y * randf_range(-camera_shake, camera_shake)
+	else:
+		camera_rig.anchor_offset = Vector3.ZERO
+	
 	camera_rig.apply_inputs(raw_move_input, look_movement, delta)
 	camera_rig.apply_camera_rotation()
 
@@ -249,6 +255,11 @@ func _update_character_equip_action() -> void:
 	successfully_equipped_with_press = true
 
 func _update_character_hud_3d() -> void:
+	if character.health < character.max_health * 0.5:
+		hud_3d.hide()
+	else:
+		hud_3d.show()
+	
 	if is_instance_valid(character.vehicle):
 		camera_rig.update_first_person_position(1.0)
 		hud_3d.global_position = camera_rig.camera_3d.global_position

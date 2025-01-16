@@ -6,8 +6,14 @@ class_name SlidingDoor extends Node3D
 
 @export var door: Node3D
 @export var obstacle: NavigationObstacle3D
+@export var navigation_link_3d: NavigationLink3D
 
 func _update(delta: float) -> void:
+	if move_target == 1:
+		navigation_link_3d.enabled = true
+	else:
+		navigation_link_3d.enabled = false
+	
 	if is_instance_valid(obstacle): obstacle.queue_free()
 	
 	if !is_instance_valid(door): return

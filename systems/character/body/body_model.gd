@@ -17,6 +17,8 @@ class_name BodyModel extends Node3D
 
 @export var arp_model: bool = true
 
+@export var power_brick: Node3D
+
 var damageable_areas: Array[DamageableArea3D]
 var damageable_area_rids: Array[RID]
 
@@ -132,3 +134,4 @@ func set_melee_stats(melee_damage: float, melee_force: float, melee_slow: float)
 	if !is_instance_valid(melee_damaging_area_3d): return
 	melee_damaging_area_3d.damage_data = DamageData.new()
 	melee_damaging_area_3d.damage_data.damage_strength = melee_damage
+	melee_damaging_area_3d.damage_data.damage_force = melee_force

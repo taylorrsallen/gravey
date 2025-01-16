@@ -32,6 +32,10 @@ enum BodyRole {
 @export var sprint_speed: float = 8.0
 @export var jump_velocity: float = 3.0
 
+@export var navigation_collider_radius: float = 0.434
+@export var navigation_collider_height: float = 1.25
+@export var walkable_collision_layer: int = 1
+
 @export_category("Model")
 @export var body_model: PackedScene
 

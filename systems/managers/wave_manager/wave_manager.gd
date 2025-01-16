@@ -1,6 +1,9 @@
 class_name WaveManager extends Node
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+signal wave_survived()
+
+# (({[%%%(({[=======================================================================================================================]}))%%%]}))
 @export var extra_points_to_add_per_wave: int
 @export var points_to_add_per_wave: int
 @export var points_per_wave: int
@@ -67,6 +70,7 @@ func restart() -> void:
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func spawn_wave() -> void:
+	if current_wave != 0: wave_survived.emit()
 	current_wave += 1
 	points_to_add_per_wave += extra_points_to_add_per_wave
 	points_per_wave += points_to_add_per_wave

@@ -89,6 +89,8 @@ var last_velocity: Vector3
 
 var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 
+@export var walkable_collision_layer: int = 1
+
 # VEHICLE
 @export var vehicle: VehicleBase
 @export var in_vehicle: bool
@@ -161,6 +163,11 @@ func _on_body_changed() -> void:
 	collision_mask = body_base.body_data.collision_mask
 	
 	jump_velocity = body_base.body_data.jump_velocity
+	
+	nav_collider.shape.radius = body_base.body_data.navigation_collider_radius
+	nav_collider.shape.height = body_base.body_data.navigation_collider_height
+	
+	walkable_collision_layer = body_base.body_data.walkable_collision_layer
 
 func get_weapon_hold_offset() -> Vector3:
 	if gun_base.data:
@@ -201,8 +208,10 @@ func physics_update(delta: float) -> void:
 	
 	if power > 0:
 		target_speed_multiplier = 0.7
+		if is_instance_valid(body_base.body_model): body_base.body_model.power_brick.show()
 	else:
 		target_speed_multiplier = 1.0
+		if is_instance_valid(body_base.body_model) && is_instance_valid(body_base.body_model.power_brick): body_base.body_model.power_brick.hide()
 	
 	if body_base.melee_target == 1.0:
 		melee_timer += delta
@@ -475,7 +484,7 @@ func _update_upright_force() -> void:
 
 func _update_ride_force() -> void:
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
-	var query = PhysicsRayQueryParameters3D.create(global_position, global_position - Vector3.UP * 1.75, 1)
+	var query = PhysicsRayQueryParameters3D.create(global_position, global_position - Vector3.UP * 1.75, walkable_collision_layer)
 	var result: Dictionary = space_state.intersect_ray(query)
 	
 	if !result.is_empty():

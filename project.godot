@@ -321,3 +321,4 @@ inventory_0={
 3d_physics/layer_6="PLAYER_NAVIGATION"
 3d_physics/layer_7="VFX"
 3d_physics/layer_8="INVISIBLE_WALL"
+3d_physics/layer_9="AI_WALKABLE"

@@ -49,7 +49,7 @@ func _physics_process(delta: float) -> void:
 	
 	fake_velocity = fake_velocity.move_toward((delivery_target - global_position).normalized() * max_speed, delta * thrust_strength)
 	
-	if delivery_target.distance_to(global_position) < 10.0: land()
+	if delivery_target.distance_to(global_position) < 5.0: land()
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func launch() -> void:

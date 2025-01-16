@@ -6,7 +6,7 @@ signal damaged(damage_data: DamageData, area_id: int, source: Node)
 @export var source: Node
 @export var team: int = -1
 
-func damage(damage_data: DamageData, _source: Node) -> void:
+func damage(damage_data: , _source: Node) -> void:
 	damaged.emit(damage_data, id, _source)
 
 func damage_sourceless(damage_data: DamageData) -> void:

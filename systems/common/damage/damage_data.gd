@@ -15,3 +15,4 @@ enum DamageMaterial {
 @export var damage_type: DamageType
 @export var damage_material: DamageMaterial
 @export var damage_strength: float
+@export var damage_force: float
