@@ -46,6 +46,7 @@ static var GUN_DATABASE: GunDatabase = load("res://resources/weapons/guns/gun_da
 static var BODY_DATABASE: BodyDatabase = load("res://resources/bodies/body_database.res")
 static var MAP_DATABASE: MapDatabase = load("res://resources/maps/map_database.res")
 static var VEHICLE_DATABASE: VehicleDatabase = load("res://resources/vehicles/vehicle_database.res")
+static var ITEM_DATABASE: ItemDatabase = load("res://resources/items/item_database.res")
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 static var main: Main

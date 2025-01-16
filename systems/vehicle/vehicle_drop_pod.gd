@@ -18,6 +18,12 @@ func _ready() -> void:
 	
 	drop_target = Vector3(global_position.x + randf_range(-20.0, 20.0), 0.0, global_position.z + randf_range(-20.0, 20.0))
 
+#func _exit_tree() -> void:
+	#if !multiplayer.multiplayer_peer || !multiplayer.is_server(): return
+	#if dropping: return
+	#SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, 0, metadata, global_transform)
+	#destroy()
+
 func update(delta: float) -> void:
 	if !is_multiplayer_authority(): return
 	
@@ -38,6 +44,10 @@ func update(delta: float) -> void:
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func drop() -> void:
+	if !full: return
+	
+	EventBus.launch_pod(metadata["pod_id"])
+	
 	dropping = true
 	can_exit = false
 	velocity = -Vector3.UP * randf_range(30.0, 50.0) + global_basis.z * randf_range(40.0, 60.0) + global_basis.x * randf_range(-5.0, 5.0)

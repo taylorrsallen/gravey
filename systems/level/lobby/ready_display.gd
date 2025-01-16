@@ -1,0 +1,1 @@
+class_name ReadyDisplay extends Node3D

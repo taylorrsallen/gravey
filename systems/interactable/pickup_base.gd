@@ -19,6 +19,8 @@ func _update_model() -> void:
 	
 	if metadata.has("ammo") && id <= Util.BULLET_DATABASE.database.size():
 		model = Util.BULLET_DATABASE.database[id].ammo_box_model.instantiate()
+	if metadata.has("item") && id <= Util.ITEM_DATABASE.database.size():
+		model = Util.ITEM_DATABASE.database[id].model_scene.instantiate()
 	
 	if model: add_child.call_deferred(model)
 
@@ -28,6 +30,18 @@ func _ready() -> void:
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func pickup(character: Character) -> void:
 	if metadata.has("ammo"): character.inventory.ammo_stock[id] += metadata["ammo"]
+	
+	if metadata.has("health"):
+		if character.health != character.max_health:
+			character.health += metadata["health"]
+		else:
+			return
+	
+	if metadata.has("power"):
+		if character.power == 0:
+			character.power = metadata["power"]
+		else:
+			return
 	
 	destroy()
 
@@ -40,6 +54,6 @@ func destroy() -> void:
 		process_mode = Node.PROCESS_MODE_DISABLED
 		_rpc_destroy.rpc_id(1)
 
-@rpc("any_peer", "call_remote", "unreliable")
+@rpc("any_peer", "call_remote", "reliable")
 func _rpc_destroy() -> void:
 	queue_free()

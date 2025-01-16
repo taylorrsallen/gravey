@@ -33,6 +33,7 @@ enum BodyRole {
 
 @export_category("Wave Manager")
 @export var role: BodyRole
+@export var unlock_wave: int
 @export var point_value: int
 
 @export_category("AI")

@@ -41,6 +41,6 @@ func destroy() -> void:
 		process_mode = Node.PROCESS_MODE_DISABLED
 		_rpc_destroy.rpc_id(1)
 
-@rpc("any_peer", "call_remote", "unreliable")
+@rpc("any_peer", "call_remote", "reliable")
 func _rpc_destroy() -> void:
 	queue_free()

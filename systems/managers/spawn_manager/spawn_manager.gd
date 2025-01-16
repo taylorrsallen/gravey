@@ -65,7 +65,7 @@ func spawn_equippable(id: int, metadata: Dictionary, global_transform: Transform
 		_rpc_spawn_equippable.rpc_id(1, id, metadata, global_transform, lin_vel, ang_vel)
 		return null
 
-@rpc("any_peer", "call_remote", "unreliable")
+@rpc("any_peer", "call_remote", "reliable")
 func _rpc_spawn_equippable(id: int, metadata: Dictionary, global_transform: Transform3D, lin_vel: Vector3, ang_vel: Vector3) -> EquippableBase:
 	var equippable: EquippableBase = EQUIPPABLE_BASE.instantiate()
 	equippable.transform = global_transform
@@ -83,7 +83,7 @@ func spawn_pickup(id: int, metadata: Dictionary, global_transform: Transform3D) 
 		_rpc_spawn_pickup.rpc_id(1, id, metadata, global_transform)
 		return null
 
-@rpc("any_peer", "call_remote", "unreliable")
+@rpc("any_peer", "call_remote", "reliable")
 func _rpc_spawn_pickup(id: int, metadata: Dictionary, global_transform: Transform3D) -> PickupBase:
 	var pickup: PickupBase = PICKUP_BASE.instantiate()
 	pickup.transform = global_transform
@@ -99,13 +99,13 @@ func spawn_vehicle(id: int, metadata: Dictionary, global_transform: Transform3D)
 		_rpc_spawn_vehicle.rpc_id(1, id, metadata, global_transform)
 		return null
 
-@rpc("any_peer", "call_remote", "unreliable")
+@rpc("any_peer", "call_remote", "reliable")
 func _rpc_spawn_vehicle(id: int, metadata: Dictionary, global_transform: Transform3D) -> VehicleBase:
 	var vehicle: VehicleBase = Util.VEHICLE_DATABASE.database[id].scene.instantiate()
 	vehicle.transform = global_transform
 	vehicle.metadata = metadata
 	vehicle.id = id
-	Util.main.server_objects.add_child(vehicle, true)
+	Util.main.server_objects.add_child.call_deferred(vehicle, true)
 	return vehicle
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
@@ -116,7 +116,7 @@ func spawn_server_owned_object(spawn_type: Spawner.SpawnType, spawn_id: int, met
 		_rpc_spawn_server_owned_object.rpc_id(1, spawn_type, spawn_id, metadata, global_transform)
 		return null
 
-@rpc("any_peer", "call_remote", "unreliable")
+@rpc("any_peer", "call_remote", "reliable")
 func _rpc_spawn_server_owned_object(spawn_type: Spawner.SpawnType, spawn_id: int, metadata: Dictionary, global_transform: Transform3D) -> Node:
 		match spawn_type:
 			Spawner.SpawnType.ENEMY: return _spawn_server_owned_enemy(spawn_id, metadata, global_transform)

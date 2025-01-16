@@ -65,13 +65,18 @@ func _find_target_character() -> void:
 	
 	var player_characters: Array[Character] = []
 	for peer_connection in peer_connections:
-		for child in peer_connection.get_children():
-			if !(child is PlayerController): continue
-			if is_instance_valid(child.character) && !child.character.dead && child.character.global_position.y < 800.0:
-				player_characters.append(child.character)
+		for player_controller in peer_connection.get_children():
+			if !(player_controller is PlayerController): continue
+			if is_instance_valid(player_controller.character) && !player_controller.character.dead && player_controller.character.global_position.y < 800.0:
+				player_characters.append(player_controller.character)
 				continue
 			
-			var non_server_character: Character = child.owned_objects.get_node_or_null("Character")
+			var non_server_character: Character = null
+			for owned_object in player_controller.owned_objects.get_children():
+				if owned_object is Character:
+					non_server_character = owned_object
+					break
+			
 			if is_instance_valid(non_server_character) && !non_server_character.dead && non_server_character.global_position.y < 800.0: player_characters.append(non_server_character)
 	
 	if player_characters.is_empty(): return

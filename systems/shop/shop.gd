@@ -59,6 +59,9 @@ func get_cart_total_cost() -> int:
 			ShopItemData.ShopCategory.AMMO:
 				var bullet_data: BulletData = Util.BULLET_DATABASE.database[cart[i].id]
 				total_cost += bullet_data.shop_ammo_box_point_cost
+			ShopItemData.ShopCategory.ITEM:
+				var item_data: ItemData = Util.ITEM_DATABASE.database[cart[i].id]
+				total_cost += item_data.shop_point_cost
 	
 	return total_cost
 

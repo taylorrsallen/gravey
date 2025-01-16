@@ -48,7 +48,7 @@ var device_assigned: int = -1
 @onready var camera_view_layer: CanvasLayer = $CameraViewLayer
 @export var splitscreen_view: SplitscreenView
 @onready var shader_view_layer: CanvasLayer = $ShaderViewLayer
-@export var shader_view: Control
+@export var shader_view: ShaderView
 #@onready var menu_view: Control = $HUDViewLayer/MenuView
 
 # FLAGS
@@ -64,6 +64,8 @@ var device_assigned: int = -1
 
 # GAME
 @export var points: int = 4000
+@export var respawn_time: float = 5.0
+@export var respawn_timer: float
 
 # SHOP
 @export var laser_designating: bool
@@ -151,7 +153,13 @@ func _physics_process(delta: float) -> void:
 			_update_character_hud_3d()
 		else:
 			camera_rig.update_first_person_position(1.0)
-			camera_rig.anchor_position += world_move_input * 0.1
+			
+			shader_view.fade_to_black.modulate.a = clampf(respawn_timer * 0.5, 0.0, 1.0)
+			
+			respawn_timer += delta
+			if respawn_timer >= respawn_time:
+				spawn_character()
+				_init_camera_rig()
 
 func _update_raw_inputs() -> void:
 	move_input = Input.get_vector("move_left_" + str(local_id), "move_right_" + str(local_id), "move_forward_" + str(local_id), "move_back_" + str(local_id))
@@ -184,6 +192,8 @@ func _update_character_focused_interactable() -> void:
 	var collider: Node3D = result["collider"]
 	if collider.get_parent() is VehicleBase && collider.get_parent() != character.vehicle && !collider.get_parent().full:
 		focused_interactable = result["collider"]
+	elif collider.get_parent() is PowerStation && !collider.get_parent().powered:
+		focused_interactable = result["collider"]
 	else:
 		focused_interactable = null
 
@@ -198,12 +208,15 @@ func _update_character_focused_interactable_action() -> void:
 			if focused_interactable.get_parent() is VehicleBase:
 				var vehicle: VehicleBase = Util.VEHICLE_DATABASE.database[focused_interactable.get_parent().id].scene.instantiate()
 				vehicle.transform = focused_interactable.get_parent().global_transform
+				vehicle.metadata = focused_interactable.get_parent().metadata.duplicate(true)
 				owned_objects.add_child(vehicle, true)
 				character.board_vehicle(vehicle)
 				focused_interactable.get_parent().destroy()
+			elif focused_interactable.get_parent() is PowerStation:
+				focused_interactable.get_parent().try_power(character)
 
 func _update_character_focused_equippable() -> void:
-	var results: Array[PhysicsBody3D] = AreaQueryManager.query_area(character.global_position, 1.2, 8)
+	var results: Array[PhysicsBody3D] = AreaQueryManager.query_area(character.global_position, 1.8, 8)
 	if results.is_empty():
 		focused_equippable = null
 		return
@@ -264,6 +277,13 @@ func _update_character_hud_3d() -> void:
 		if focused_interactable.get_parent() is VehicleBase:
 			hud_3d.interact_prompt.text = "Press E to get in " + "ERROR_VEHICLE_NOT_FOUND"
 			hud_3d.interact_prompt.show()
+		elif focused_interactable.get_parent() is PowerStation:
+			if character.power >= 100:
+				hud_3d.interact_prompt.text = "Press E to place power brick"
+				hud_3d.interact_prompt.show()
+			else:
+				hud_3d.interact_prompt.text = "Need power brick"
+				hud_3d.interact_prompt.show()
 		else:
 			hud_3d.interact_prompt.hide()
 	elif is_instance_valid(focused_equippable):
@@ -373,6 +393,9 @@ func _update_character_input(delta: float) -> void:
 func spawn_character() -> void:
 	if !is_multiplayer_authority(): return
 	
+	if is_instance_valid(shader_view): shader_view.fade_to_black.modulate.a = 0.0
+	respawn_timer = 0.0
+	
 	character = CHARACTER.instantiate()
 	
 	var valid_lobby_spawns: Array[LobbySpawn] = []
@@ -396,6 +419,8 @@ func spawn_character() -> void:
 	character.apply_force(Vector3.UP * 800.0)
 	
 	_on_character_weapon_changed()
+	
+	character.killed.connect(_on_character_killed)
 
 func _on_character_weapon_changed() -> void:
 	if character.gun_base.data_id == 0:
@@ -423,6 +448,9 @@ func _on_character_weapon_changed() -> void:
 
 func _on_character_damaged() -> void:
 	hud_3d.damage()
+
+func _on_character_killed(_character: Character) -> void:
+	camera_rig.anchor_position = _character.global_position + Vector3.UP * 3.0
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 # CURSOR

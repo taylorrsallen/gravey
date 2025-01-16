@@ -13,6 +13,7 @@ const SHOP_ITEM_DISPLAY: PackedScene = preload("res://systems/shop/shop_item_dis
 @onready var category_vessels: Button = $InterfacePanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/CategoriesVBoxContainer/CategoryVessels
 @onready var category_guns: Button = $InterfacePanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/CategoriesVBoxContainer/CategoryGuns
 @onready var category_ammo: Button = $InterfacePanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/CategoriesVBoxContainer/CategoryAmmo
+@onready var category_items: Button = $InterfacePanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/CategoriesVBoxContainer/CategoryItems
 
 @onready var catalog_v_box_container: VBoxContainer = $InterfacePanelContainer/MarginContainer/VBoxContainer/HBoxContainer/CatalogPanelContainer/MarginContainer/ScrollContainer/CatalogVBoxContainer
 @onready var cart_v_box_container: VBoxContainer = $InterfacePanelContainer/MarginContainer/VBoxContainer/HBoxContainer/CartPanelContainer/MarginContainer/VBoxContainer/PanelContainer/ScrollContainer/CartVBoxContainer
@@ -36,6 +37,7 @@ func _set_active_category(_active_category: int) -> void:
 		0: _refresh_vessel_category()
 		1: _refresh_guns_category()
 		2: _refresh_ammo_category()
+		3: _refresh_items_category()
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _refresh_vessel_category() -> void:
@@ -46,6 +48,9 @@ func _refresh_guns_category() -> void:
 
 func _refresh_ammo_category() -> void:
 	for i in Util.GUN_DATABASE.database.size(): _add_item_display_to_category(ShopItemData.ShopCategory.AMMO, i)
+
+func _refresh_items_category() -> void:
+	for i in Util.ITEM_DATABASE.database.size(): _add_item_display_to_category(ShopItemData.ShopCategory.ITEM, i)
 
 func _add_item_display_to_category(category: ShopItemData.ShopCategory, id: int) -> void:
 	var shop_item_data: ShopItemData = ShopItemData.new()
@@ -92,6 +97,7 @@ func refresh() -> void:
 func _on_vessels_pressed() -> void: active_category = 0
 func _on_guns_pressed() -> void: active_category = 1
 func _on_ammo_pressed() -> void: active_category = 2
+func _on_items_pressed() -> void: active_category = 3
 
 func _on_clear_cart_pressed() -> void:
 	shop.clear_cart()

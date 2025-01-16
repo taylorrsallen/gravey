@@ -57,7 +57,7 @@ func launch() -> void:
 	_rpc_launch.rpc()
 	angular_velocity = Vector3(randf_range(-20.0, 20.0), randf_range(-20.0, 20.0), randf_range(-20.0, 20.0))
 
-@rpc("any_peer", "call_local", "unreliable")
+@rpc("any_peer", "call_local", "reliable")
 func _rpc_launch() -> void:
 	show()
 
@@ -83,6 +83,11 @@ func land() -> void:
 			ShopItemData.ShopCategory.AMMO:
 				var bullet_data: BulletData = Util.BULLET_DATABASE.database[shop_item_data.id]
 				SpawnManager.spawn_pickup(shop_item_data.id, { "ammo" = bullet_data.shop_ammo_box_quantity }, item_transform)
-	
+			ShopItemData.ShopCategory.ITEM:
+				var item_data: ItemData = Util.ITEM_DATABASE.database[shop_item_data.id]
+				var metadata: Dictionary = item_data.metadata.duplicate(true)
+				metadata["item"] = 1
+				SpawnManager.spawn_pickup(shop_item_data.id, metadata, item_transform)
+
 	VfxManager.spawn_vfx(8, global_position + Vector3.UP * 0.4, global_basis)
 	queue_free()

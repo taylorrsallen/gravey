@@ -52,8 +52,6 @@ func _hit(point: Vector3, _normal: Vector3, collider: Node3D) -> void:
 			player_controller.points += 1
 		
 		collider.damage(data.damage_data, null)
-		
-		print(player_controller.points)
 	
 	Util.play_bullet_hit_effects(collider, point, Basis.looking_at(point + global_basis.z), data)
 	

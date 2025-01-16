@@ -124,6 +124,9 @@ var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 # DEATH
 @export var dead: bool
 
+# TRASH TEMP CODE
+@export var power: int
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func is_flag_on(flag: CharacterFlag) -> bool: return Util.is_flag_on(flags, flag)
 func set_flag_on(flag: CharacterFlag) -> void: flags = Util.set_flag_on(flags, flag)
@@ -193,6 +196,11 @@ func physics_update(delta: float) -> void:
 	if dead:
 		hide()
 		return
+	
+	if power > 0:
+		target_speed_multiplier = 0.7
+	else:
+		target_speed_multiplier = 1.0
 	
 	if body_base.melee_target == 1.0:
 		melee_timer += delta
@@ -339,8 +347,6 @@ func set_gun_barrel_aim(_basis: Basis, offset: Vector3) -> void:
 func will_die_from_damage(damage_data: DamageData, area_id: int) -> bool:
 	var damage: float = damage_data.damage_strength
 	if area_id == 1: damage *= 2.5
-	print("total_health: %s | total_damage: %s" % [health + shields, damage])
-	print("will die: %s" % ((health + shields) <= damage))
 	return (health + shields) <= damage
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
@@ -506,7 +512,7 @@ func _update_ride_force() -> void:
 		constant_force = Vector3.ZERO
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
-@rpc("any_peer", "call_remote", "unreliable")
+@rpc("any_peer", "call_remote", "reliable")
 func _rpc_deal_damage(damage_strength: float, area_id: int) -> void:
 	_deal_damage(damage_strength, area_id)
 
@@ -559,10 +565,8 @@ func die() -> void:
 		drop_weapon(Vector3(randf_range(-2.0, 2.0), randf_range(2.0, 5.0), randf_range(-2.0, 2.0)), Vector3(randf_range(-10.0, 10.0), randf_range(-10.0, 10.0), randf_range(-10.0, 10.0)))
 		killed.emit(self)
 		inventory.drop_contents()
-
-		if is_instance_valid(vehicle):
-			SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, vehicle.id, vehicle.metadata, vehicle.global_transform)
-			exit_vehicle()
+		
+		if is_instance_valid(vehicle): exit_vehicle()
 		
 		_rpc_die.rpc()
 		set_physics_process(false)
@@ -580,6 +584,7 @@ func die() -> void:
 		hide()
 		collision_layer = 0
 		collision_mask = 0
+		killed.emit(self)
 		body_base.deactivate()
 
 @rpc("any_peer", "call_remote", "reliable")
@@ -643,6 +648,7 @@ func drop_weapon(_lin_vel: Vector3, _ang_vel: Vector3) -> void:
 		_ang_vel)
 	gun_base.data_id = 0
 	set_active_inventory_slot_weapon()
+	weapon_changed.emit()
 
 func melee() -> void:
 	if vehicle:
@@ -650,9 +656,8 @@ func melee() -> void:
 	else:
 		_rpc_melee.rpc()
 
-@rpc("any_peer", "call_local", "unreliable")
+@rpc("any_peer", "call_local", "reliable")
 func _rpc_melee() -> void:
-	print("melee")
 	if body_base.melee_target != 1.0:
 		if is_instance_valid(body_base.body_model.animation_tree):
 			if body_base.melee_right:
@@ -669,9 +674,9 @@ func board_vehicle(_vehicle: VehicleBase) -> void:
 	in_vehicle = true
 
 func exit_vehicle() -> void:
+	SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, vehicle.id, vehicle.metadata, vehicle.global_transform)
 	vehicle.exit()
 	vehicle.queue_free()
-	SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, vehicle.id, vehicle.metadata, vehicle.global_transform)
 	
 	global_position = vehicle.seat.global_position
 	global_basis = Basis.IDENTITY

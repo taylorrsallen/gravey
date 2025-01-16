@@ -28,6 +28,9 @@ func _set_data(_data: ShopItemData) -> void:
 		ShopItemData.ShopCategory.AMMO:
 			var bullet_data: BulletData = Util.BULLET_DATABASE.database[data.id]
 			set_display(bullet_data.shop_ammo_box_icon, bullet_data.shop_ammo_box_name, bullet_data.shop_ammo_box_point_cost)
+		ShopItemData.ShopCategory.ITEM:
+			var item_data: ItemData = Util.ITEM_DATABASE.database[data.id]
+			set_display(item_data.shop_icon, item_data.name, item_data.shop_point_cost)
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func set_display(item_icon: Texture2D, item_name: String, item_cost: int) -> void:

@@ -8,6 +8,7 @@ const ID_BUTTON: PackedScene = preload("res://systems/gui/id_button.scn")
 
 @onready var network_manager: NetworkManager = $NetworkManager
 @onready var wave_manager: Node = $WaveManager
+@onready var game_state_manager: GameStateManager = $GameStateManager
 
 @onready var npcs: Node = $NPCs
 @onready var server_objects: Node = $ServerObjects
@@ -22,8 +23,6 @@ const ID_BUTTON: PackedScene = preload("res://systems/gui/id_button.scn")
 
 ## DEBUG
 @export var debug: bool = false
-
-@onready var start_game: Button = $VBoxContainer/StartGame
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _ready() -> void:
@@ -110,22 +109,24 @@ func _refresh_ui() -> void:
 			peer_con_vbox.add_child(owner_label)
 
 func _on_server_started() -> void:
-	start_game.show()
-	
 	for child in lobby.get_children():
 		if !(child is Spawner): continue
 		if child.spawn_method == Spawner.SpawnMethod.ON_LOAD:
 			child.spawn()
+	
+	game_state_manager.spawn_and_deactivate_all_pods()
 
 func _on_start_game_pressed() -> void:
 	EventBus.start_game()
 
-func reset(game_starting: bool) -> void:
+func reset() -> void:
 	for child in npcs.get_children():
 		if child is MultiplayerSpawner: continue
-		if game_starting && child.metadata.has("on_load"): continue
 		child.free()
 	for child in server_objects.get_children():
 		if child is MultiplayerSpawner: continue
-		if game_starting && child.metadata.has("on_load"): continue
+		
+		# Retarded code incoming
+		if child is VehicleDropPod: EventBus.launch_pod(child.metadata["pod_id"])
+		
 		child.free()
