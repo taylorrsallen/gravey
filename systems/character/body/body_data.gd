@@ -18,8 +18,11 @@ enum BodyRole {
 @export var max_shields: float
 @export var shields_per_second: float
 
+@export var melee_damage: float
 @export var melee_force: float
 @export var melee_slow: float
+
+@export var team: int = -1
 
 @export_category("Movement")
 @export var weight: float = 1.0
@@ -27,6 +30,7 @@ enum BodyRole {
 @export var walk_speed: float = 1.0
 @export var jog_speed: float = 2.5
 @export var sprint_speed: float = 8.0
+@export var jump_velocity: float = 3.0
 
 @export_category("Model")
 @export var body_model: PackedScene

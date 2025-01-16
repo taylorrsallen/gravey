@@ -1,3 +1,3 @@
-class_name LandingZone extends Node3D
+class_name LandingZone extends Marker3D
 
 @export var pod_id: int

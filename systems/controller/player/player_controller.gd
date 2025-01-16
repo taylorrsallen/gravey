@@ -209,6 +209,7 @@ func _update_character_focused_interactable_action() -> void:
 				var vehicle: VehicleBase = Util.VEHICLE_DATABASE.database[focused_interactable.get_parent().id].scene.instantiate()
 				vehicle.transform = focused_interactable.get_parent().global_transform
 				vehicle.metadata = focused_interactable.get_parent().metadata.duplicate(true)
+				vehicle.drop_target = focused_interactable.get_parent().drop_target
 				owned_objects.add_child(vehicle, true)
 				character.board_vehicle(vehicle)
 				focused_interactable.get_parent().destroy()
@@ -301,9 +302,12 @@ func _update_character_ik_targets(delta: float) -> void:
 	
 	#print(character.gun_barrel_position_target.distance_to(character.body_base.body_model.r_shoulder_bone_attachment_3d.global_position))
 	
-	camera_rig.ray_cast_3d.force_raycast_update()
-	if camera_rig.ray_cast_3d.is_colliding():
-		character.gun_barrel_look_target = camera_rig.ray_cast_3d.get_collision_point()
+	var space_state: PhysicsDirectSpaceState3D = character.get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(camera_rig.camera_3d.global_position, camera_rig.camera_3d.global_position + camera_rig.get_camera_forward() * 100.0, 5, character.body_base.body_model.damageable_area_rids)
+	var result: Dictionary = space_state.intersect_ray(query)
+	
+	if !result.is_empty():
+		character.gun_barrel_look_target = result["position"]
 	else:
 		character.gun_barrel_look_target = camera_rig.camera_3d.global_position + camera_rig.get_camera_forward() * 100.0
 	
@@ -316,7 +320,7 @@ func _update_character_laser_pointer() -> void:
 	if !laser_designating: return
 	
 	var space_state: PhysicsDirectSpaceState3D = character.get_world_3d().direct_space_state
-	var query = PhysicsRayQueryParameters3D.create(character.gun_barrel_ik_target.global_position, character.gun_barrel_ik_target.global_position - character.gun_barrel_ik_target.global_basis.z * laser_length, 5)
+	var query = PhysicsRayQueryParameters3D.create(character.gun_barrel_ik_target.global_position, character.gun_barrel_ik_target.global_position - character.gun_barrel_ik_target.global_basis.z * laser_length, 5, character.body_base.body_model.damageable_area_rids)
 	var result: Dictionary = space_state.intersect_ray(query)
 	
 	laser_pointer.global_transform = character.gun_barrel_ik_target.global_transform
@@ -410,8 +414,11 @@ func spawn_character() -> void:
 	character.controller = self
 	owned_objects.add_child(character, true)
 	character.set_body_id(0)
+	character.body_base.body_model.head_bone_attachment.hide()
+	character.body_base.body_model.l_shoulder_bone_attachment_3d.hide()
+	character.body_base.body_model.r_shoulder_bone_attachment_3d.hide()
 	
-	character.body_base.hide()
+	#character.body_base.hide()
 	character.gun_base.data_id = 1
 	character.inventory.ammo_stock[0] = 128
 	character.set_active_inventory_slot_weapon()

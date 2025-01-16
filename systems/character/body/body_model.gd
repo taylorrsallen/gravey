@@ -17,6 +17,9 @@ class_name BodyModel extends Node3D
 
 @export var arp_model: bool = true
 
+var damageable_areas: Array[DamageableArea3D]
+var damageable_area_rids: Array[RID]
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _enter_tree() -> void:
 	set_multiplayer_authority(get_parent().get_multiplayer_authority())
@@ -38,6 +41,25 @@ func _ready() -> void:
 		_init_arp_model()
 	else:
 		_init_model()
+	
+	_init_damageable_areas()
+
+func _init_damageable_areas() -> void:
+	damageable_areas = []
+	damageable_area_rids = []
+	for child in get_children():
+		_collect_damageable_areas_recursive(child)
+	
+	if is_instance_valid(melee_damaging_area_3d):
+		melee_damaging_area_3d.exclude_areas = damageable_areas
+
+func _collect_damageable_areas_recursive(parent: Node) -> void:
+	if parent is DamageableArea3D:
+		damageable_areas.append(parent)
+		damageable_area_rids.append(parent.get_rid())
+	else:
+		for child in parent.get_children():
+			_collect_damageable_areas_recursive(child)
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _init_arp_model() -> void:
@@ -68,7 +90,7 @@ func _init_arp_model() -> void:
 		head_bone_attachment.bone_name = "head.x"
 
 func _init_model() -> void:
-	print("I'll do it later")
+	pass # TODO: Something? Anything?
 
 func set_hands(hands: GunData.Hands) -> void:
 	if !animation_tree: return
@@ -101,3 +123,12 @@ func _deactivate_recursive(parent: Node) -> void:
 		parent.collision_mask = 0
 	else:
 		for child in parent.get_children(): _deactivate_recursive(child)
+
+func set_team(team: int) -> void:
+	for area in damageable_areas:
+		area.team = team
+
+func set_melee_stats(melee_damage: float, melee_force: float, melee_slow: float) -> void:
+	if !is_instance_valid(melee_damaging_area_3d): return
+	melee_damaging_area_3d.damage_data = DamageData.new()
+	melee_damaging_area_3d.damage_data.damage_strength = melee_damage

@@ -54,6 +54,7 @@ import/blender/enabled=false
 [global_group]
 
 navigation_mesh_source_group=""
+navigation_mesh_source_group_openable=""
 
 [input]
 

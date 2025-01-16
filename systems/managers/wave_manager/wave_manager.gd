@@ -79,7 +79,7 @@ func spawn_wave() -> void:
 	var bodies_to_spawn: Array[int] = []
 	while points_left >= 1 && bodies_to_spawn.size() < max_enemies:
 		# Appending Blits
-		bodies_to_spawn.append(4)
+		bodies_to_spawn.append(3)
 		points_left -= 1
 	
 	var max_failed_upgrade_attempts: int = 10

@@ -47,6 +47,7 @@ func _on_game_ended() -> void: game_active = false
 func _on_readied_character_killed(_character: Character) -> void:
 	if lives == 0:
 		players_in_mission -= 1
+		player_characters_in_mission.erase(_character)
 	else:
 		lives -= 1
 		# TODO: Open a pod door
@@ -62,6 +63,7 @@ func _physics_process(delta: float) -> void:
 				break
 		
 		if invalid_index != -1:
+			print("Invalid index found")
 			_on_readied_character_killed(null)
 			player_characters_in_mission.remove_at(invalid_index)
 	

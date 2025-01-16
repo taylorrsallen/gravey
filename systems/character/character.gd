@@ -159,6 +159,8 @@ func _on_body_changed() -> void:
 	
 	collision_layer = body_base.body_data.collision_layer
 	collision_mask = body_base.body_data.collision_mask
+	
+	jump_velocity = body_base.body_data.jump_velocity
 
 func get_weapon_hold_offset() -> Vector3:
 	if gun_base.data:

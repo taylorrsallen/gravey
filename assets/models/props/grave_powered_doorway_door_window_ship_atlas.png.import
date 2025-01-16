@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cuwiasoc84ahq"
-path.s3tc="res://.godot/imported/grave_city_tiles_ship_atlas.png-ea73600976157f6c3db03325c550732e.s3tc.ctex"
+uid="uid://cn35nr5fxefy0"
+path.s3tc="res://.godot/imported/grave_powered_doorway_door_window_ship_atlas.png-3c67af916667aae97a1077d10ec766cd.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/models/tilesets/grave_city_tiles_ship_atlas.png"
-dest_files=["res://.godot/imported/grave_city_tiles_ship_atlas.png-ea73600976157f6c3db03325c550732e.s3tc.ctex"]
+source_file="res://assets/models/props/grave_powered_doorway_door_window_ship_atlas.png"
+dest_files=["res://.godot/imported/grave_powered_doorway_door_window_ship_atlas.png-3c67af916667aae97a1077d10ec766cd.s3tc.ctex"]
 
 [params]
 

@@ -34,3 +34,8 @@ func clear_map() -> void:
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _ready() -> void:
 	for existing_map_data in Util.MAP_DATABASE.database: multiplayer_spawner.add_spawnable_scene(existing_map_data.scene.resource_path)
+
+func get_map() -> Map:
+	for child in map_container.get_children():
+		if child is Map: return child
+	return null

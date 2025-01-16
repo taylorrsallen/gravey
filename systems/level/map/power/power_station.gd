@@ -7,7 +7,11 @@ class_name PowerStation extends Node3D
 
 func _set_powered(_powered: bool) -> void:
 	powered = _powered
-	if powered: power_cell.show()
+	if powered:
+		power_cell.show()
+		await get_tree().create_timer(1.0).timeout
+		for child in get_children():
+			if child is NavigationRegion3D: child.enabled = true
 
 func try_power(character: Character) -> void:
 	if character.power < 100: return

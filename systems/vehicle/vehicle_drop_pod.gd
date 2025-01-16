@@ -15,8 +15,20 @@ var time_since_drop: float
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _ready() -> void:
 	EventBus.game_started.connect(drop)
+	Util.main.level.map_changed.connect(_on_map_changed)
 	
-	drop_target = Vector3(global_position.x + randf_range(-20.0, 20.0), 0.0, global_position.z + randf_range(-20.0, 20.0))
+	if is_instance_valid(Util.main.level.get_map()): find_drop_target(Util.main.level)
+
+func _on_map_changed(level: Level) -> void:
+	find_drop_target(level)
+
+func find_drop_target(level: Level) -> void:
+	if !is_multiplayer_authority(): return
+	
+	for landing_zone in level.get_map().landing_zones.get_children():
+		if landing_zone.pod_id == metadata["pod_id"]:
+			drop_target = landing_zone.global_position
+			break
 
 #func _exit_tree() -> void:
 	#if !multiplayer.multiplayer_peer || !multiplayer.is_server(): return
@@ -50,12 +62,14 @@ func drop() -> void:
 	
 	dropping = true
 	can_exit = false
-	velocity = -Vector3.UP * randf_range(30.0, 50.0) + global_basis.z * randf_range(40.0, 60.0) + global_basis.x * randf_range(-5.0, 5.0)
+	velocity = -Vector3.UP * randf_range(30.0, 50.0) + global_basis.x * randf_range(-5.0, 5.0)
 
 func land() -> void:
 	SoundManager.play_pitched_3d_sfx(4, SoundDatabase.SoundType.SFX_EXPLOSION, global_position)
 	dropping = false
 	can_exit = true
+	
+	print("Landed at %s" % global_position)
 	global_position = drop_target
 	
 	if is_instance_valid(driver): driver.exit_vehicle()

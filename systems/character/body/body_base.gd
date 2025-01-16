@@ -42,6 +42,8 @@ func _set_body_data(_body_data: BodyData) -> void:
 	if is_instance_valid(body_model): body_model.queue_free()
 	body_model = body_data.body_model.instantiate()
 	add_child(body_model)
+	body_model.set_team(body_data.team)
+	body_model.set_melee_stats(body_data.melee_damage, body_data.melee_force, body_data.melee_slow)
 	
 	body_changed.emit()
 

@@ -20,7 +20,6 @@ enum Perspective {
 @onready var camera_offset: Node3D = $Yaw/SpringArm3d/CameraOffset
 @onready var animation_player: AnimationPlayer = $Yaw/SpringArm3d/CameraOffset/AnimationPlayer
 @onready var camera_3d: Camera3D = $Yaw/SpringArm3d/CameraOffset/Camera3D
-@onready var ray_cast_3d: RayCast3D = $Yaw/SpringArm3d/CameraOffset/Camera3D/RayCast3D
 
 @export var anchor_node: Node3D: set = _set_anchor_node
 var anchor_position: Vector3
@@ -82,15 +81,6 @@ func get_yaw_local_vector3(vector: Vector3) -> Vector3:
 func get_camera_local_vector3(vector: Vector3) -> Vector3:
 	return vector.x * get_yaw_right() + vector.y * get_camera_up() + vector.z * -get_camera_forward()
 
-func get_aim_target() -> Vector3:
-	if ray_cast_3d.is_colliding():
-		return ray_cast_3d.get_collision_point()
-	else:
-		return get_fixed_aim_target()
-
-func get_fixed_aim_target() -> Vector3:
-	return camera_3d.global_position + get_camera_forward() * ray_cast_3d.target_position.length()
-
 func get_look_up_down_scalar() -> float:
 	return get_camera_forward().dot(get_yaw_up())
 
@@ -110,12 +100,6 @@ func set_mouse_visible(_visible: bool) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	else:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-
-func get_focused_entity() -> Node3D:
-	if ray_cast_3d.is_colliding():
-		focus_position = ray_cast_3d.get_collision_point()
-		return ray_cast_3d.get_collider()
-	return null
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func update_first_person_position(delta: float) -> void:
