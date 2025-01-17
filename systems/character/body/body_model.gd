@@ -1,6 +1,9 @@
 class_name BodyModel extends Node3D
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
+signal footstep()
+
+# (({[%%%(({[=======================================================================================================================]}))%%%]}))
 @onready var skeleton_3d: Skeleton3D
 
 @export var l_hand_skeleton_ik_3d: SkeletonIK3D
@@ -21,6 +24,8 @@ class_name BodyModel extends Node3D
 
 var damageable_areas: Array[DamageableArea3D]
 var damageable_area_rids: Array[RID]
+
+
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _enter_tree() -> void:
@@ -59,6 +64,8 @@ func _collect_damageable_areas_recursive(parent: Node) -> void:
 	if parent is DamageableArea3D:
 		damageable_areas.append(parent)
 		damageable_area_rids.append(parent.get_rid())
+		if !parent.damaged.is_connected(_on_damageable_area_3d_damaged): parent.damaged.connect(_on_damageable_area_3d_damaged)
+		parent.source = self
 	else:
 		for child in parent.get_children():
 			_collect_damageable_areas_recursive(child)
@@ -130,8 +137,12 @@ func set_team(team: int) -> void:
 	for area in damageable_areas:
 		area.team = team
 
-func set_melee_stats(melee_damage: float, melee_force: float, melee_slow: float) -> void:
+func set_melee_stats(melee_damage: float, melee_force: float, _melee_slow: float) -> void:
 	if !is_instance_valid(melee_damaging_area_3d): return
 	melee_damaging_area_3d.damage_data = DamageData.new()
 	melee_damaging_area_3d.damage_data.damage_strength = melee_damage
 	melee_damaging_area_3d.damage_data.damage_force = melee_force
+
+# (({[%%%(({[=======================================================================================================================]}))%%%]}))
+func _footstep() -> void:
+	footstep.emit()

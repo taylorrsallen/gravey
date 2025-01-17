@@ -44,6 +44,7 @@ func _set_body_data(_body_data: BodyData) -> void:
 	add_child(body_model)
 	body_model.set_team(body_data.team)
 	body_model.set_melee_stats(body_data.melee_damage, body_data.melee_force, body_data.melee_slow)
+	body_model.footstep.connect(_on_footstep)
 	
 	body_changed.emit()
 
@@ -103,3 +104,16 @@ func will_die_from_damage(damage_data: DamageData, area_id: int) -> bool:
 
 func deactivate() -> void:
 	if is_instance_valid(body_model): body_model.deactivate()
+
+func _on_footstep() -> void:
+	if !body_data.footstep_sound_pool: return
+	
+	var ray_origin: Vector3 = get_parent().get_parent().global_position + Vector3.UP * 1.1
+	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(ray_origin, ray_origin - Vector3.UP * 2.5, 1)
+	var result: Dictionary = space_state.intersect_ray(query)
+	
+	if result.is_empty(): return
+	
+	var sound: SoundReferenceData = body_data.footstep_sound_pool.pool.pick_random()
+	SoundManager.play_pitched_3d_sfx(sound.id, sound.type, global_position, 0.9, 1.1, sound.volume_db)

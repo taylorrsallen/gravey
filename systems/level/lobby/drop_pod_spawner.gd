@@ -12,6 +12,11 @@ class_name DropPodSpawner extends Node3D
 @onready var r_door_closed: Vector3 = r_door.position
 @onready var r_door_open: Vector3 = r_door.position - Vector3.RIGHT * 0.5
 
+@onready var spot_light_3d: SpotLight3D = $SpotLight3D
+
+@export var active_light_color: Color
+@export var inactive_light_color: Color
+
 func _enter_tree() -> void:
 	EventBus.pod_launched.connect(_on_pod_launched)
 	EventBus.game_ended.connect(_on_game_ended)
@@ -20,9 +25,11 @@ func _physics_process(delta: float) -> void:
 	if !pod_active:
 		l_door.position = l_door.position.move_toward(l_door_closed, delta * 8.0)
 		r_door.position = r_door.position.move_toward(r_door_closed, delta * 8.0)
+		spot_light_3d.light_color = inactive_light_color
 	else:
 		l_door.position = l_door.position.move_toward(l_door_open, delta * 8.0)
 		r_door.position = r_door.position.move_toward(r_door_open, delta * 8.0)
+		spot_light_3d.light_color = active_light_color
 
 func spawn() -> void:
 	if pod_loaded: return

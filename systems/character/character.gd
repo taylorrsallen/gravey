@@ -537,7 +537,7 @@ func _deal_damage(damage_strength: float, area_id: int) -> void:
 	var damage_left: float = damage_strength
 	if area_id == 1: damage_left *= 2.5
 	
-	var damage_to_shields: float = clampf(damage_strength, 0.0, shields)
+	var damage_to_shields: float = clampf(damage_left, 0.0, shields)
 	if is_multiplayer_authority(): shields -= damage_to_shields
 	damage_left -= damage_to_shields
 	
@@ -611,6 +611,7 @@ func equip(equippable: EquippableBase) -> void:
 			gun_base.data_id = equippable.gun_data_id
 			if equippable.metadata.has("rounds"): gun_base.rounds = equippable.metadata["rounds"]
 			if equippable.metadata.has("fire_mode_index"): gun_base.fire_mode_index = equippable.metadata["fire_mode_index"]
+			if equippable.metadata.has("flashlight"): gun_base.flashlight = equippable.metadata["flashlight"]
 			switch_weapon(i)
 			
 			equippable.destroy()
@@ -622,6 +623,7 @@ func equip(equippable: EquippableBase) -> void:
 	gun_base.data_id = equippable.gun_data_id
 	if equippable.metadata.has("rounds"): gun_base.rounds = equippable.metadata["rounds"]
 	if equippable.metadata.has("fire_mode_index"): gun_base.fire_mode_index = equippable.metadata["fire_mode_index"]
+	if equippable.metadata.has("flashlight"): gun_base.flashlight = equippable.metadata["flashlight"]
 	
 	equippable.destroy()
 	set_active_inventory_slot_weapon()
@@ -631,6 +633,7 @@ func set_active_inventory_slot_weapon() -> void:
 	inventory.weapons[inventory.active_weapon] = gun_base.data_id
 	inventory.weapons_fire_mode[inventory.active_weapon] = gun_base.fire_mode_index
 	inventory.weapons_ammo[inventory.active_weapon] = gun_base.rounds
+	inventory.weapons_flashlight[inventory.active_weapon] = gun_base.flashlight
 
 func switch_weapon(inventory_slot: int) -> void:
 	gun_base.interrupt_reload()
@@ -641,6 +644,7 @@ func switch_weapon(inventory_slot: int) -> void:
 	gun_base.data_id = inventory.weapons[inventory_slot]
 	gun_base.fire_mode_index = inventory.weapons_fire_mode[inventory_slot]
 	gun_base.rounds = inventory.weapons_ammo[inventory_slot]
+	gun_base.flashlight = inventory.weapons_flashlight[inventory_slot]
 	
 	_on_weapon_changed()
 
@@ -653,6 +657,7 @@ func drop_weapon(_lin_vel: Vector3, _ang_vel: Vector3) -> void:
 		gun_base.data_id, {
 			"rounds" = gun_base.rounds,
 			"fire_mode_index" = gun_base.fire_mode_index,
+			"flashlight" = gun_base.flashlight,
 		},
 		global_transform,
 		_lin_vel,
@@ -724,3 +729,6 @@ func try_fire_single_press(local_player_id: int, delta: float) -> void:
 		pass
 	else:
 		gun_base.try_fire_single_press(local_player_id, self, delta)
+
+func toggle_flashlight() -> void:
+	gun_base.toggle_flashlight()

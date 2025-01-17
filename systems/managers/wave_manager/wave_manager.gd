@@ -4,13 +4,13 @@ class_name WaveManager extends Node
 signal wave_survived()
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
-@export var extra_points_to_add_per_wave: int
 @export var points_to_add_per_wave: int
+@export var points_to_add_variance: int = 2
 @export var points_per_wave: int
 
 @export var current_wave: int
 
-@export var max_enemies: int = 30
+@export var max_enemies: int = 35
 @export var enemies: int
 
 @export var active: bool
@@ -20,8 +20,18 @@ signal wave_survived()
 @export var bug_wave_chance: float = 0.5
 @export var grunt_wave_chance: float = 0.5
 
-@export var pause_between_waves: float = 10.0
+@export var pause_before_first_wave: float = 10.0
+@export var pause_between_waves: float = 5.0
 @export var pause_timer: float
+
+@export var incoming_wave_sound_pool: SoundPoolData
+
+@export var rage: float
+@export var rage_per_wave: float = 1.1
+@export var rage_variance: float = 0.1
+
+@export var chance_for_disruption_wave: float
+@export var disruption_chance_per_non_disruption_wave: float = 0.5
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func init() -> void:
@@ -38,7 +48,11 @@ func _physics_process(delta: float) -> void:
 	if enemies != 0: return
 	
 	pause_timer += delta
-	if pause_timer >= pause_between_waves:
+	if current_wave == 0:
+		if pause_timer >= pause_before_first_wave:
+			pause_timer = 0.0
+			spawn_wave()
+	elif pause_timer >= pause_between_waves:
 		pause_timer = 0.0
 		spawn_wave()
 
@@ -54,12 +68,19 @@ func _on_map_changed(level: Level) -> void:
 	restart()
 	spawners = []
 	for child in level.map.wave_spawners.get_children(): spawners.append(child)
+	_collect_spawners_recursive(level.map.powered_devices)
+
+func _collect_spawners_recursive(parent: Node) -> void:
+	if parent is WaveSpawner:
+		spawners.append(parent)
+	else:
+		for child in parent.get_children():
+			_collect_spawners_recursive(child)
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func restart() -> void:
-	extra_points_to_add_per_wave = 1
-	points_to_add_per_wave = 8
-	points_per_wave = 0
+	points_to_add_per_wave = 10
+	points_per_wave = 8
 	
 	current_wave = 0
 	enemies = 0
@@ -70,10 +91,24 @@ func restart() -> void:
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func spawn_wave() -> void:
-	if current_wave != 0: wave_survived.emit()
+	if current_wave != 0:
+		wave_survived.emit()
+	
+		if incoming_wave_sound_pool:
+			var sound: SoundReferenceData = incoming_wave_sound_pool.pool.pick_random()
+			SoundManager.play_networked_ui_sfx(sound.id, sound.type, sound.volume_db)
+	else:
+		SoundManager.play_networked_ui_sfx(11, SoundDatabase.SoundType.SFX_VOICE)
+	
 	current_wave += 1
-	points_to_add_per_wave += extra_points_to_add_per_wave
-	points_per_wave += points_to_add_per_wave
+	points_per_wave += points_to_add_per_wave + randi_range(-points_to_add_variance, points_to_add_variance) + Util.main.game_state_manager.players_in_mission * 2.0
+	rage += rage_per_wave + randf_range(-rage_variance, rage_variance)
+	
+	var disruption_wave: bool = randf() < chance_for_disruption_wave
+	if disruption_wave:
+		chance_for_disruption_wave = 0.0
+	else:
+		chance_for_disruption_wave += disruption_chance_per_non_disruption_wave
 	
 	#var bug_wave: bool = false
 	
@@ -81,9 +116,10 @@ func spawn_wave() -> void:
 	print("[WaveManager]: Spending %s points on wave %s!" % [points_per_wave, current_wave])
 	var points_left: int = points_per_wave
 	var bodies_to_spawn: Array[int] = []
+	
 	while points_left >= 1 && bodies_to_spawn.size() < max_enemies:
-		# Appending Blits
-		bodies_to_spawn.append(3)
+		# Appending Husks
+		bodies_to_spawn.append(1)
 		points_left -= 1
 	
 	var max_failed_upgrade_attempts: int = 10
@@ -98,6 +134,8 @@ func spawn_wave() -> void:
 		for upgrade_body_id in Util.BODY_DATABASE.database.size():
 			var body_to_upgrade_to: BodyData = Util.BODY_DATABASE.database[upgrade_body_id]
 			if body_to_upgrade == body_to_upgrade_to: continue
+			if rage < body_to_upgrade_to.min_rage || rage > body_to_upgrade_to.max_rage: continue
+			if body_to_upgrade_to.role == BodyData.BodyRole.DISRUPTOR && !disruption_wave: continue
 			if points_left + body_to_upgrade.point_value >= body_to_upgrade_to.point_value:
 				possible_upgrades.append(upgrade_body_id)
 		
@@ -122,10 +160,23 @@ func spawn_bodies(bodies: Array[int]) -> void:
 	for spawner in spawners:
 		if spawner.active: active_spawners.append(spawner)
 	
-	for body_id in bodies:
+	var spawns_per_spawner: int = bodies.size() / active_spawners.size()
+	var amount_spawned: int = 0
+	
+	for spawner in active_spawners:
+		for _i in spawns_per_spawner:
+			if amount_spawned >= bodies.size(): continue
+			await get_tree().create_timer(0.1).timeout
+			if !is_instance_valid(spawner): return
+			spawn(bodies[amount_spawned], spawner)
+			amount_spawned += 1
+	
+	while amount_spawned < bodies.size() - 1:
 		var spawner: WaveSpawner = active_spawners.pick_random()
 		await get_tree().create_timer(0.1).timeout
-		spawn(body_id, spawner)
+		if !is_instance_valid(spawner): return
+		spawn(bodies[amount_spawned], spawner)
+		amount_spawned += 1
 
 func spawn(body_id: int, spawner: WaveSpawner) -> void:
 	enemies += 1

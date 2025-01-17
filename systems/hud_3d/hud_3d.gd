@@ -35,12 +35,20 @@ class_name HUD3D extends Node3D
 @onready var inventory_icon_text_back_2: Label3D = $WeaponSelection/InventoryIcon2/InventoryIconTextBack2
 @onready var inventory_icon_text_front_2: Label3D = $WeaponSelection/InventoryIcon2/InventoryIconTextBack2/InventoryIconTextFront2
 
-@onready var text_foreground_elements: Array[Label3D] = [single_front, semi_auto_front, full_auto_front, ammo_stock_counter, interact_prompt, inventory_icon_text_front_0, inventory_icon_text_front_1, inventory_icon_text_front_2]
-@onready var text_background_elements: Array[Label3D] = [single_back, semi_auto_back, full_auto_back, inventory_icon_text_back_0, inventory_icon_text_back_1, inventory_icon_text_back_2]
+@onready var points_counter_back: Label3D = $PointsCounterBack
+@onready var points_counter_front: Label3D = $PointsCounterBack/PointsCounterFront
+
+@onready var wave_counter_back: Label3D = $WaveCounterBack
+@onready var wave_counter_front: Label3D = $WaveCounterBack/WaveCounterFront
+
+@onready var text_foreground_elements: Array[Label3D] = [single_front, semi_auto_front, full_auto_front, ammo_stock_counter, interact_prompt, inventory_icon_text_front_0, inventory_icon_text_front_1, inventory_icon_text_front_2, points_counter_front, wave_counter_front]
+@onready var text_background_elements: Array[Label3D] = [single_back, semi_auto_back, full_auto_back, inventory_icon_text_back_0, inventory_icon_text_back_1, inventory_icon_text_back_2, points_counter_back, wave_counter_back]
 
 @export var primary_color_set: ColorSet
 @export var secondary_color_set: ColorSet
 @export var empty_inventory_icon: Texture2D
+
+@onready var power_brick_icon: MeshInstance3D = $PowerBrickIcon
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _physics_process(delta: float) -> void:
@@ -70,6 +78,14 @@ func _physics_process(delta: float) -> void:
 		text_foreground_elements[i].modulate.a8 = 100
 		text_background_elements[i].modulate = primary_color_set.get_background()
 		text_background_elements[i].modulate.a8 = 100
+
+# (({[%%%(({[=======================================================================================================================]}))%%%]}))
+func set_points(points: int) -> void:
+	points_counter_back.text = str(points) + " ₽"
+	points_counter_front.text = str(points) + " ₽"
+
+func spawn_points_widget(points: int) -> void:
+	pass
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func set_inventory_slot(slot: int, gun_data_id: int) -> void:

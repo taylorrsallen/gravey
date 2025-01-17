@@ -130,7 +130,6 @@ func _update_all_players_in_vehicles() -> void:
 func get_player_controllers() -> Array[PlayerController]:
 	var player_controllers: Array[PlayerController] = []
 	
-	var peer_connections: Array[PeerConnection] = []
 	for peer_connection in Util.main.network_manager.get_children():
 		if peer_connection is PeerConnection:
 			for player_controller in peer_connection.get_children():

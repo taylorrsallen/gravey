@@ -19,6 +19,9 @@ var time_since_drop: float
 @onready var hud_beacon: Node3D = $HUDBeacon
 @onready var hud_beacon_label: Label3D = $HUDBeacon/HUDBeaconLabel
 
+@export var launch_sound_pool: SoundPoolData
+@export var impact_sound_pool: SoundPoolData
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _ready() -> void:
 	if is_multiplayer_authority(): launch_delay = randf_range(10.0, 20.0)
@@ -56,6 +59,10 @@ func launch() -> void:
 	launched = true
 	_rpc_launch.rpc()
 	angular_velocity = Vector3(randf_range(-20.0, 20.0), randf_range(-20.0, 20.0), randf_range(-20.0, 20.0))
+	
+	if launch_sound_pool:
+		var sound: SoundReferenceData = launch_sound_pool.pool.pick_random()
+		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, global_position, 0.9, 1.1, sound.volume_db, 100.0)
 
 @rpc("any_peer", "call_local", "reliable")
 func _rpc_launch() -> void:
@@ -88,6 +95,10 @@ func land() -> void:
 				var metadata: Dictionary = item_data.metadata.duplicate(true)
 				metadata["item"] = 1
 				SpawnManager.spawn_pickup(shop_item_data.id, metadata, item_transform)
-
+	
+	if impact_sound_pool:
+		var sound: SoundReferenceData = impact_sound_pool.pool.pick_random()
+		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, global_position, 0.9, 1.1, sound.volume_db)
 	VfxManager.spawn_vfx(8, global_position + Vector3.UP * 0.4, global_basis)
+	
 	queue_free()

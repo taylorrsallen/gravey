@@ -44,6 +44,12 @@ var device_assigned: int = -1
 @onready var shop: Shop = $Shop
 @onready var laser_pointer: Node3D = $LaserPointer
 
+@onready var breathing_audio_stream_player: AudioStreamPlayer = $BreathingAudioStreamPlayer
+@onready var heartbeat_audio_stream_player: AudioStreamPlayer = $HeartbeatAudioStreamPlayer
+@onready var low_armor_audio_stream_player: AudioStreamPlayer = $LowArmorAudioStreamPlayer
+@onready var low_shields_audio_stream_player: AudioStreamPlayer = $LowShieldsAudioStreamPlayer
+@onready var mask_breathing_audio_stream_player: AudioStreamPlayer = $MaskBreathingAudioStreamPlayer
+
 # VIEW
 @onready var camera_view_layer: CanvasLayer = $CameraViewLayer
 @export var splitscreen_view: SplitscreenView
@@ -63,7 +69,7 @@ var device_assigned: int = -1
 @export var focused_interactable: InteractableBase
 
 # GAME
-@export var points: int = 4000
+@export var points: int
 @export var respawn_time: float = 5.0
 @export var respawn_timer: float
 
@@ -74,6 +80,17 @@ var device_assigned: int = -1
 @export var laser_length: float = 50.0
 @export var laser_valid_color: Color
 @export var laser_invalid_color: Color
+
+# SOUNDS
+@export var breathing_volume_target: float = -200.0
+@export var heartbeat_volume_target: float = -200.0
+@export var low_armor_volume_target: float = -200.0
+@export var low_shield_volume_target: float = -200.0
+@export var mask_breathing_volume_target: float = -200.0
+
+# MULTIPLAYER
+@export var player_name: String
+@export var player_color: Color
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func is_flag_on(flag: PlayerControllerFlag) -> bool: return Util.is_flag_on(flags, flag)
@@ -88,6 +105,11 @@ func init() -> void:
 	if local_id == 0:
 		assign_default_controls(0)
 		set_cursor_captured()
+	
+	EventBus.game_ended.connect(_on_game_ended)
+
+func _on_game_ended() -> void:
+	points = 0
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(get_parent().name.to_int())
@@ -100,9 +122,13 @@ func _ready() -> void:
 		init()
 	else:
 		hud_3d.hide()
+		breathing_audio_stream_player.queue_free()
+		heartbeat_audio_stream_player.queue_free()
+		low_armor_audio_stream_player.queue_free()
+		low_shields_audio_stream_player.queue_free()
+		mask_breathing_audio_stream_player.queue_free()
 	
 	owned_objects_spawner.spawn_path = owned_objects.get_path()
-	label_3d.text = str(get_multiplayer_authority())
 
 func _physics_process(delta: float) -> void:
 	if laser_designating:
@@ -150,7 +176,8 @@ func _physics_process(delta: float) -> void:
 			_update_character_ik_targets(delta)
 			_update_character_laser_pointer()
 			_update_character_input(delta)
-			_update_character_hud_3d()
+			_update_character_hud_3d(delta)
+			_update_character_sounds(delta)
 		else:
 			camera_rig.update_first_person_position(1.0)
 			
@@ -160,6 +187,25 @@ func _physics_process(delta: float) -> void:
 			if respawn_timer >= respawn_time:
 				spawn_character()
 				_init_camera_rig()
+	else:
+		var _character: Character = null
+		for child in owned_objects.get_children():
+			if child is Character:
+				character = child
+				break
+		
+		if is_instance_valid(_character) && !_character.dead:
+			label_3d.show()
+			label_3d.global_position = _character.global_position + Vector3.UP * 0.7
+			if player_name != "":
+				label_3d.text = player_name
+			else:
+				label_3d.text = str(get_multiplayer_authority())
+			
+			label_3d.modulate = player_color * 5.0
+			label_3d.modulate.a = 0.6
+		else:
+			label_3d.hide()
 
 func _update_raw_inputs() -> void:
 	move_input = Input.get_vector("move_left_" + str(local_id), "move_right_" + str(local_id), "move_forward_" + str(local_id), "move_back_" + str(local_id))
@@ -254,11 +300,25 @@ func _update_character_equip_action() -> void:
 	focused_equippable = null
 	successfully_equipped_with_press = true
 
-func _update_character_hud_3d() -> void:
+func _update_character_hud_3d(delta: float) -> void:
 	if character.health < character.max_health * 0.5:
 		hud_3d.hide()
 	else:
 		hud_3d.show()
+	
+	if Util.main.wave_manager.current_wave == 0:
+		hud_3d.wave_counter_back.hide()
+	else:
+		hud_3d.wave_counter_back.show()
+		hud_3d.wave_counter_back.text = "Wave " + str(Util.main.wave_manager.current_wave)
+		hud_3d.wave_counter_front.text = "Wave " + str(Util.main.wave_manager.current_wave)
+	
+	if character.power >= 100:
+		hud_3d.power_brick_icon.show()
+	else:
+		hud_3d.power_brick_icon.hide()
+	
+	hud_3d.set_points(points)
 	
 	if is_instance_valid(character.vehicle):
 		camera_rig.update_first_person_position(1.0)
@@ -305,7 +365,7 @@ func _update_character_hud_3d() -> void:
 	else:
 		hud_3d.interact_prompt.hide()
 	
-	hud_3d.radar.update_display(camera_rig, character)
+	hud_3d.radar.update_display(camera_rig, character, delta)
 
 func _update_character_ik_targets(delta: float) -> void:
 	var hold_offset: Vector3 = character.get_weapon_hold_offset()
@@ -336,7 +396,7 @@ func _update_character_laser_pointer() -> void:
 	
 	laser_pointer.global_transform = character.gun_barrel_ik_target.global_transform
 	laser_pointer.scale = Vector3.ONE
-	if result.is_empty():
+	if result.is_empty() || character.global_position.y > 900.0:
 		laser_pointer.scale.z = 50.0
 		laser_valid = false
 	else:
@@ -403,6 +463,34 @@ func _update_character_input(delta: float) -> void:
 		laser_designating = false
 		character.gun_base.cycle_fire_mode()
 		hud_3d.set_fire_mode_displayed(character.gun_base.get_fire_mode())
+	
+	if Input.is_action_just_pressed("flashlight_" + str(local_id)):
+		character.toggle_flashlight()
+
+func _update_character_sounds(delta: float) -> void:
+	if character.health > character.max_health * 0.5:
+		breathing_volume_target = -80.0
+		heartbeat_volume_target = -80.0
+		mask_breathing_volume_target = -15.0
+		low_armor_volume_target = -80.0
+	else:
+		breathing_volume_target = 0.0
+		heartbeat_volume_target = -12.0
+		mask_breathing_volume_target = -80.0
+		low_armor_volume_target = -5.0
+	
+	if character.max_shields == 0:
+		low_shield_volume_target = -80.0
+	elif character.shields <= 0:
+		low_shield_volume_target = 0.0
+	else:
+		low_shield_volume_target = -80.0
+	
+	breathing_audio_stream_player.volume_db = move_toward(breathing_audio_stream_player.volume_db, breathing_volume_target, delta * 200.0)
+	heartbeat_audio_stream_player.volume_db = move_toward(heartbeat_audio_stream_player.volume_db, heartbeat_volume_target, delta * 200.0)
+	low_armor_audio_stream_player.volume_db = move_toward(low_armor_audio_stream_player.volume_db, low_armor_volume_target, delta * 200.0)
+	low_shields_audio_stream_player.volume_db = move_toward(low_shields_audio_stream_player.volume_db, low_shield_volume_target, delta * 200.0)
+	mask_breathing_audio_stream_player.volume_db = move_toward(mask_breathing_audio_stream_player.volume_db, mask_breathing_volume_target, delta * 200.0)
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func spawn_character() -> void:
@@ -662,6 +750,7 @@ static func _assign_default_keyboard_controls(player_id: int) -> void:
 	_assign_key_action_event(player_id, "equip", KEY_E)
 	_assign_key_action_event(player_id, "jump", KEY_SPACE)
 	_assign_key_action_event(player_id, "drop", KEY_G)
+	_assign_key_action_event(player_id, "flashlight", KEY_F)
 	_assign_key_action_event(player_id, "1", KEY_1)
 	_assign_key_action_event(player_id, "2", KEY_2)
 	_assign_key_action_event(player_id, "3", KEY_3)

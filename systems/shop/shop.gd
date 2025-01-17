@@ -14,6 +14,8 @@ const DELIVERY_DROP_VESSEL: PackedScene = preload("res://systems/shop/delivery_d
 # DELIVERY
 @export var delivery_spawn_point: Vector3 = Vector3(0.0, 950.0, 0.0)
 
+@export var order_placed_sound_pool: SoundPoolData
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _ready() -> void:
 	shop_interface.shop = self
@@ -29,6 +31,10 @@ func try_place_order(laser_point: Vector3, laser_valid: bool) -> bool:
 	delivery_drop_vessel.contents = cart.duplicate(true)
 	delivery_drop_vessel.position = delivery_spawn_point
 	get_parent().owned_objects.add_child(delivery_drop_vessel, true)
+	
+	if order_placed_sound_pool:
+		var sound: SoundReferenceData = order_placed_sound_pool.pool.pick_random()
+		SoundManager.play_ui_sfx(sound.id, sound.type, sound.volume_db)
 	
 	return true
 

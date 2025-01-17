@@ -3,23 +3,22 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cuwiasoc84ahq"
-path.s3tc="res://.godot/imported/grave_city_tiles_ship_atlas.png-ea73600976157f6c3db03325c550732e.s3tc.ctex"
+path="res://.godot/imported/grave_city_tiles_ship_atlas.png-ea73600976157f6c3db03325c550732e.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "75bfbc741754362cbc29ef362ccfd68d"
+"md5": "7a68fadb55fc765adfb3370ede2611df"
 }
 
 [deps]
 
 source_file="res://assets/models/tilesets/grave_city_tiles_ship_atlas.png"
-dest_files=["res://.godot/imported/grave_city_tiles_ship_atlas.png-ea73600976157f6c3db03325c550732e.s3tc.ctex"]
+dest_files=["res://.godot/imported/grave_city_tiles_ship_atlas.png-ea73600976157f6c3db03325c550732e.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

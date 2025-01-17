@@ -32,6 +32,8 @@ var semi_auto_firing: bool
 
 var equipped_to_character: Character
 
+@export var flashlight: bool
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _set_data_id(_data_id: int) -> void:
 	data_id = _data_id
@@ -58,6 +60,8 @@ func _physics_process(delta: float) -> void:
 	if !data: return
 	if !multiplayer.multiplayer_peer: return
 	if !is_instance_valid(model): return
+	
+	if is_instance_valid(model.light): model.light.visible = flashlight
 	
 	if is_multiplayer_authority():
 		fire_timer = clampf(fire_timer + delta, 0.0, data.rounds_per_second)
@@ -154,7 +158,7 @@ func _fire(player_id: int, character: Character) -> void:
 	VfxManager.spawn_vfx(2, model.muzzle.global_position, model.muzzle.global_basis)
 	VfxManager.spawn_vfx(5, model.muzzle.global_position, model.muzzle.global_basis)
 	var sound: SoundReferenceData = data.fire_sound_pool.pool.pick_random()
-	SoundManager.play_pitched_3d_sfx(sound.id, sound.type, model.muzzle.global_position)
+	SoundManager.play_pitched_3d_sfx(sound.id, sound.type, model.muzzle.global_position, 0.9, 1.1, sound.volume_db)
 	character.snap_gun_aim()
 
 func _dry_fire() -> void:
@@ -184,6 +188,10 @@ func reload() -> void:
 	rounds += amount_to_reload
 	equipped_to_character.inventory.ammo_stock[data.bullet_id] -= amount_to_reload
 	amount_to_reload = 0
+
+func toggle_flashlight() -> void:
+	flashlight = !flashlight
+	SoundManager.play_pitched_3d_sfx(4, SoundDatabase.SoundType.SFX_FOLEY, model.magazine_grab.global_position)
 
 func interrupt_reload() -> void:
 	reload_timer = 0.0

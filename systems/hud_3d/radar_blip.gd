@@ -20,3 +20,6 @@ func update_position(camera_rig: CameraRig, character: Character, other_characte
 		rotate_z(camera_direction.signed_angle_to(direction_to_other, Vector3.UP) + deg_to_rad(180))
 		blip.position.y = 0.0225 * distance_to_other
 		return
+
+func reduce_alpha(delta: float) -> void:
+	blip.get_surface_override_material(0).albedo_color.a -= delta

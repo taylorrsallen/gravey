@@ -51,6 +51,13 @@ func _physics_process(delta: float) -> void:
 func play_ui_sfx(id: int, type: SoundDatabase.SoundType, volume_db: float = 0.0, pitch: float = 1.0, bus: int = 0) -> void:
 	_play_ui_sfx(SOUND_DATABASE.get_sound(id, type), volume_db, pitch, bus)
 
+func play_networked_ui_sfx(id: int, type: SoundDatabase.SoundType, volume_db: float = 0.0, pitch: float = 1.0, bus: int = 0) -> void:
+	_rpc_play_networked_ui_sfx.rpc(id, type, volume_db, pitch, bus)
+
+@rpc("any_peer", "call_local", "unreliable")
+func _rpc_play_networked_ui_sfx(id: int, type: SoundDatabase.SoundType, volume_db: float = 0.0, pitch: float = 1.0, bus: int = 0) -> void:
+	play_ui_sfx(id, type, volume_db, pitch, bus)
+
 func play_pitched_ui_sfx(id: int, type: SoundDatabase.SoundType, pitch_min: float = 0.9, pitch_max: float = 1.1, volume_db: float = 0.0, bus: int = 0) -> void:
 	_play_pitched_ui_sfx(SOUND_DATABASE.get_sound(id, type), pitch_min, pitch_max, volume_db, bus)
 

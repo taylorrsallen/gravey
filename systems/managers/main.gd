@@ -4,8 +4,6 @@ class_name Main extends Node
 const ID_BUTTON: PackedScene = preload("res://systems/gui/id_button.scn")
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
-@onready var peer_connections_box: HBoxContainer = $PeerConnectionsBox
-
 @onready var network_manager: NetworkManager = $NetworkManager
 @onready var wave_manager: Node = $WaveManager
 @onready var game_state_manager: GameStateManager = $GameStateManager
@@ -16,12 +14,25 @@ const ID_BUTTON: PackedScene = preload("res://systems/gui/id_button.scn")
 @onready var lobby_spawns: Node = $LobbySpawns
 @onready var lobby: Node = $Lobby
 
-@onready var v_box_container: VBoxContainer = $VBoxContainer
-@onready var maps_v_box_container: VBoxContainer = $VBoxContainer/PanelContainer/MarginContainer/MapsVBoxContainer
-
 @onready var multiplayer_spawner: MultiplayerSpawner = $ServerObjects/MultiplayerSpawner
 
-## DEBUG
+# MAIN MENU
+@onready var main_menu: Control = $MainMenu
+@onready var splash_texture_rect: TextureRect = $MainMenu/SplashTextureRect
+@onready var controls_texture_rect: TextureRect = $MainMenu/ControlsTextureRect
+@onready var ip_line_edit: LineEdit = $MainMenu/PanelContainer2/MarginContainer/VBoxContainer/HBoxContainer/IPLineEdit
+
+@onready var peer_connections_panel: PanelContainer = $MainMenu/PeerConnectionsPanel
+@onready var peer_connections_h_box_container: HBoxContainer = $MainMenu/PeerConnectionsPanel/MarginContainer/VBoxContainer/PeerConnectionsHBoxContainer
+
+@onready var server_panel_container: PanelContainer = $MainMenu/ServerPanelContainer
+@onready var player_count_line_edit: LineEdit = $MainMenu/ServerPanelContainer/MarginContainer/VBoxContainer/HBoxContainer/PlayerCountLineEdit
+@onready var maps_v_box_container: VBoxContainer = $MainMenu/ServerPanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/VBoxContainer2/MapsVBoxContainer
+
+@onready var player_name_line_edit: LineEdit = $MainMenu/PanelContainer3/MarginContainer/VBoxContainer/PlayerNameLineEdit
+@onready var player_color_picker_button: ColorPickerButton = $MainMenu/PanelContainer3/MarginContainer/VBoxContainer/HBoxContainer/PlayerColorPickerButton
+
+# DEBUG
 @export var debug: bool = false
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
@@ -46,19 +57,35 @@ func _ready() -> void:
 	wave_manager.init()
 
 func _physics_process(_delta: float) -> void:
+	if multiplayer.multiplayer_peer && multiplayer.is_server():
+		server_panel_container.show()
+		game_state_manager.mission_player_count = clampi(player_count_line_edit.text.to_int(), 1, 4)
+	else:
+		server_panel_container.hide()
+	
 	var player_controller: PlayerController = network_manager.try_get_local_player_controller(0)
 	
 	if !is_instance_valid(player_controller):
-		Util.main.v_box_container.show()
-		Util.main.peer_connections_box.show()
+		main_menu.show()
+		peer_connections_panel.show()
+		splash_texture_rect.show()
+		controls_texture_rect.hide()
 	else:
+		player_controller.player_name = player_name_line_edit.text
+		player_controller.player_color = player_color_picker_button.color
 		if player_controller.is_flag_on(PlayerController.PlayerControllerFlag.CURSOR_VISIBLE):
 			if !player_controller.shop.shop_interface.visible:
-				Util.main.v_box_container.show()
-				Util.main.peer_connections_box.show()
+				main_menu.show()
+				peer_connections_panel.show()
+				splash_texture_rect.hide()
+				controls_texture_rect.show()
+			else:
+				main_menu.hide()
 		else:
-			Util.main.v_box_container.hide()
-			Util.main.peer_connections_box.hide()
+			main_menu.hide()
+			peer_connections_panel.hide()
+			splash_texture_rect.hide()
+			controls_texture_rect.show()
 
 func _on_map_id_button_pressed(id: int) -> void:
 	level.map_id = id
@@ -67,9 +94,8 @@ func _on_map_id_button_pressed(id: int) -> void:
 func _on_host_pressed() -> void:
 	host()
 
-@onready var line_edit: LineEdit = $VBoxContainer/LineEdit
 func _on_join_pressed() -> void:
-	join(line_edit.text)
+	join(ip_line_edit.text)
 
 func _on_disconnect_pressed() -> void:
 	disconnect_network()
@@ -88,18 +114,18 @@ func disconnect_network() -> void:
 	level.map_id = 0
 
 func is_menu_visible() -> bool:
-	return v_box_container.visible
+	return main_menu.visible
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _refresh_ui() -> void:
-	for child in peer_connections_box.get_children(): child.queue_free()
+	for child in peer_connections_h_box_container.get_children(): child.queue_free()
 	for child in network_manager.get_children():
 		if !(child is PeerConnection): continue
 		var peer_con_container: PanelContainer = PanelContainer.new()
 		var peer_con_vbox: VBoxContainer = VBoxContainer.new()
 		var peer_con_label: Label = Label.new()
 		peer_con_label.text = child.name
-		peer_connections_box.add_child(peer_con_container)
+		peer_connections_h_box_container.add_child(peer_con_container)
 		peer_con_container.add_child(peer_con_vbox)
 		peer_con_vbox.add_child(peer_con_label)
 		
@@ -130,3 +156,6 @@ func reset() -> void:
 		if child is VehicleDropPod: EventBus.launch_pod(child.metadata["pod_id"])
 		
 		child.free()
+
+func _on_join_dedicated_pressed() -> void:
+	join("98.121.165.44")

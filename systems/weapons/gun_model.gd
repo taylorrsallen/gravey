@@ -11,3 +11,5 @@ class_name GunModel extends Node3D
 @export var barrel_model: MeshInstance3D
 @export var barrel_base_color: Color
 @export var barrel_overheat_color: Color
+
+@export var light: Node3D

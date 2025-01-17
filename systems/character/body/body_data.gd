@@ -41,8 +41,10 @@ enum BodyRole {
 
 @export_category("Wave Manager")
 @export var role: BodyRole
-@export var unlock_wave: int
 @export var point_value: int
+@export var min_rage: float
+@export var max_rage: float
+@export var max_spawned: int
 
 @export_category("AI")
 @export var min_desired_distance: float = 10.0
@@ -50,6 +52,9 @@ enum BodyRole {
 @export var firing_range: float = 30.0
 @export var melee_range: float = 1.0
 
-@export var random_sounds: SoundPoolData
 @export var collision_layer: int = 2
 @export var collision_mask: int = 3
+
+@export_category("Sound")
+@export var footstep_sound_pool: SoundPoolData
+@export var random_sounds: SoundPoolData
