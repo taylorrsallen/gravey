@@ -14,7 +14,7 @@ config/name="grave"
 run/main_scene="res://systems/managers/main.scn"
 config/features=PackedStringArray("4.4", "Forward Plus")
 boot_splash/image="uid://e8d2kxar1ov0"
-config/icon="res://assets/sprites/icons/ikthia.png"
+config/icon="uid://tsdgcuk50fu3"
 
 [autoload]
 

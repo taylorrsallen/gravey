@@ -25,7 +25,9 @@ signal footstep()
 var damageable_areas: Array[DamageableArea3D]
 var damageable_area_rids: Array[RID]
 
-
+@export var invisible_type: bool
+@export var invisible_time: float = 1.0
+@export var invisible_timer: float
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _enter_tree() -> void:
@@ -50,6 +52,14 @@ func _ready() -> void:
 		_init_model()
 	
 	_init_damageable_areas()
+
+func _physics_process(delta: float) -> void:
+	if !invisible_type: return
+	if $Model.visible:
+		invisible_timer += delta
+		if invisible_timer >= invisible_time:
+			invisible_timer = 0.0
+			$Model.hide()
 
 func _init_damageable_areas() -> void:
 	damageable_areas = []
@@ -111,6 +121,8 @@ func set_hands(hands: GunData.Hands) -> void:
 		animation_tree["parameters/walk_hands_blend/blend_amount"] = 1.0
 
 func _on_damageable_area_3d_damaged(damage_data: DamageData, area_id: int, source: Node) -> void:
+	$Model.show()
+	invisible_timer = 0.0
 	get_parent()._on_damageable_area_3d_damaged(damage_data, area_id, source)
 
 func get_matter_id_for_damageable_area_3d(area_id: int) -> int:

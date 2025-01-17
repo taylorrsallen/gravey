@@ -43,13 +43,14 @@ func _physics_process(delta: float) -> void:
 func _hit(point: Vector3, _normal: Vector3, collider: Node3D) -> void:
 	if collider is DamageableArea3D:
 		var player_controller: PlayerController = get_parent().get_parent()
-		# Headshot
-		if collider.id == 1 && collider.will_die_from_damage(data.damage_data):
-			player_controller.points += 10
-		elif collider.will_die_from_damage(data.damage_data):
-			player_controller.points += 5
-		else:
-			player_controller.points += 1
+		if collider.team != player_controller.character.body_base.body_data.team:
+			# Headshot
+			if collider.id == 1 && collider.will_die_from_damage(data.damage_data):
+				player_controller.points += 10
+			elif collider.will_die_from_damage(data.damage_data):
+				player_controller.points += 5
+			else:
+				player_controller.points += 1
 		
 		collider.damage(data.damage_data, null)
 	

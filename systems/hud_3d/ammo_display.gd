@@ -35,7 +35,7 @@ func _set_background_ammo_color(_background_ammo_color: Color) -> void:
 func _set_ammo(_ammo: int) -> void:
 	ammo = clampi(_ammo, 0, max_ammo)
 	if ammo_per_row < 1 || ammo_per_row > 100: return
-	if max_ammo < 1 || max_ammo > 100: return
+	if max_ammo < 1 || max_ammo > 1000: return
 	_update_current_ammo_display()
 
 func _set_max_ammo(_max_ammo: int) -> void:

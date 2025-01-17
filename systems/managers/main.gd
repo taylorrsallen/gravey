@@ -24,6 +24,7 @@ const ID_BUTTON: PackedScene = preload("res://systems/gui/id_button.scn")
 
 @onready var peer_connections_panel: PanelContainer = $MainMenu/PeerConnectionsPanel
 @onready var peer_connections_h_box_container: HBoxContainer = $MainMenu/PeerConnectionsPanel/MarginContainer/VBoxContainer/PeerConnectionsHBoxContainer
+@onready var port_warning: PanelContainer = $MainMenu/PortWarning
 
 @onready var server_panel_container: PanelContainer = $MainMenu/ServerPanelContainer
 @onready var player_count_line_edit: LineEdit = $MainMenu/ServerPanelContainer/MarginContainer/VBoxContainer/HBoxContainer/PlayerCountLineEdit
@@ -67,7 +68,9 @@ func _physics_process(_delta: float) -> void:
 	
 	if !is_instance_valid(player_controller):
 		main_menu.show()
-		peer_connections_panel.show()
+		peer_connections_panel.hide()
+		server_panel_container.hide()
+		port_warning.show()
 		splash_texture_rect.show()
 		controls_texture_rect.hide()
 	else:
@@ -77,6 +80,7 @@ func _physics_process(_delta: float) -> void:
 			if !player_controller.shop.shop_interface.visible:
 				main_menu.show()
 				peer_connections_panel.show()
+				port_warning.hide()
 				splash_texture_rect.hide()
 				controls_texture_rect.show()
 			else:
@@ -84,6 +88,7 @@ func _physics_process(_delta: float) -> void:
 		else:
 			main_menu.hide()
 			peer_connections_panel.hide()
+			port_warning.hide()
 			splash_texture_rect.hide()
 			controls_texture_rect.show()
 

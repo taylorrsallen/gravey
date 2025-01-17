@@ -3,7 +3,7 @@ class_name PowerStation extends Node3D
 @export var powered: bool: set = _set_powered
 @export var id: int
 
-@onready var power_cell: Node3D = $PowerCell
+@onready var power_cell: Node3D = $grave_power_brick
 
 func _set_powered(_powered: bool) -> void:
 	powered = _powered

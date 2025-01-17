@@ -110,11 +110,12 @@ func _rpc_spawn_vehicle(id: int, metadata: Dictionary, global_transform: Transfo
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func spawn_server_owned_object(spawn_type: Spawner.SpawnType, spawn_id: int, metadata: Dictionary, global_transform: Transform3D) -> Node:
-	if multiplayer.is_server():
-		return _rpc_spawn_server_owned_object(spawn_type, spawn_id, metadata, global_transform)
-	else:
-		_rpc_spawn_server_owned_object.rpc_id(1, spawn_type, spawn_id, metadata, global_transform)
-		return null
+	if multiplayer.multiplayer_peer:
+		if multiplayer.is_server():
+			return _rpc_spawn_server_owned_object(spawn_type, spawn_id, metadata, global_transform)
+		else:
+			_rpc_spawn_server_owned_object.rpc_id(1, spawn_type, spawn_id, metadata, global_transform)
+	return null
 
 @rpc("any_peer", "call_remote", "reliable")
 func _rpc_spawn_server_owned_object(spawn_type: Spawner.SpawnType, spawn_id: int, metadata: Dictionary, global_transform: Transform3D) -> Node:

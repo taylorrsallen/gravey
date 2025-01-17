@@ -84,7 +84,7 @@ func set_points(points: int) -> void:
 	points_counter_back.text = str(points) + " ₽"
 	points_counter_front.text = str(points) + " ₽"
 
-func spawn_points_widget(points: int) -> void:
+func spawn_points_widget(_points: int) -> void:
 	pass
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))

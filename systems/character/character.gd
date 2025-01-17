@@ -675,7 +675,14 @@ func melee() -> void:
 @rpc("any_peer", "call_local", "reliable")
 func _rpc_melee() -> void:
 	if body_base.melee_target != 1.0:
-		if is_instance_valid(body_base.body_model.animation_tree):
+		if is_instance_valid(body_base.body_model) && is_instance_valid(body_base.body_model.animation_tree):
+			body_base.body_model.show()
+			body_base.body_model.invisible_timer = 0.0
+			
+			if body_base.body_data.attack_sounds:
+				var sound: SoundReferenceData = body_base.body_data.attack_sounds.pool.pick_random()
+				SoundManager.play_pitched_3d_sfx(sound.id, sound.type, global_position, 0.9, 1.1, sound.volume_db, 100.0)
+			
 			if body_base.melee_right:
 				body_base.body_model.animation_tree["parameters/l_melee_seek/seek_request"] = 0.0
 			else:
@@ -691,6 +698,9 @@ func board_vehicle(_vehicle: VehicleBase) -> void:
 
 func exit_vehicle() -> void:
 	SpawnManager.spawn_server_owned_object(Spawner.SpawnType.VEHICLE, vehicle.id, vehicle.metadata, vehicle.global_transform)
+	exit_and_destroy_vehicle()
+
+func exit_and_destroy_vehicle() -> void:
 	vehicle.exit()
 	vehicle.queue_free()
 	

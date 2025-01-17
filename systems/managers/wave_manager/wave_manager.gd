@@ -21,7 +21,7 @@ signal wave_survived()
 @export var grunt_wave_chance: float = 0.5
 
 @export var pause_before_first_wave: float = 10.0
-@export var pause_between_waves: float = 5.0
+@export var pause_between_waves: float = 3.0
 @export var pause_timer: float
 
 @export var incoming_wave_sound_pool: SoundPoolData
@@ -122,8 +122,9 @@ func spawn_wave() -> void:
 		bodies_to_spawn.append(1)
 		points_left -= 1
 	
+	var hulk_spawned: bool = false
 	var max_failed_upgrade_attempts: int = 10
-	var failed_upgrade_attempts: int = 0
+	var failed_upgrade_attempts: int = 0 
 	while points_left >= 1 && failed_upgrade_attempts < max_failed_upgrade_attempts:
 		var success: bool = false
 		var i: int = randi_range(0, bodies_to_spawn.size() - 1)
@@ -136,11 +137,15 @@ func spawn_wave() -> void:
 			if body_to_upgrade == body_to_upgrade_to: continue
 			if rage < body_to_upgrade_to.min_rage || rage > body_to_upgrade_to.max_rage: continue
 			if body_to_upgrade_to.role == BodyData.BodyRole.DISRUPTOR && !disruption_wave: continue
+			if body_to_upgrade_to.point_value < body_to_upgrade.point_value: continue
+			if upgrade_body_id == 5 && hulk_spawned: continue
 			if points_left + body_to_upgrade.point_value >= body_to_upgrade_to.point_value:
 				possible_upgrades.append(upgrade_body_id)
 		
 		if !possible_upgrades.is_empty():
+			print(possible_upgrades[0])
 			var upgrade_body_id: int = possible_upgrades.pick_random()
+			if upgrade_body_id == 5: hulk_spawned = true
 			var body_to_upgrade_to: BodyData = Util.BODY_DATABASE.database[upgrade_body_id]
 			success = true
 			bodies_to_spawn[i] = upgrade_body_id
@@ -183,6 +188,10 @@ func spawn(body_id: int, spawner: WaveSpawner) -> void:
 	
 	var new_spawn: Node = SpawnManager.spawn_server_owned_object(Spawner.SpawnType.ENEMY, body_id, {}, spawner.global_transform)
 	new_spawn.character.killed.connect(_on_enemy_killed)
+	new_spawn.despawn_time = 300.0
+	if Util.main.game_state_manager.players_in_mission > 1:
+		new_spawn.character.max_health *= Util.main.game_state_manager.players_in_mission * 0.5
+		new_spawn.character.health = new_spawn.character.max_health
 
 func _on_enemy_killed(_character: Character) -> void:
 	enemies -= 1

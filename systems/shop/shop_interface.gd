@@ -47,7 +47,7 @@ func _refresh_guns_category() -> void:
 	for i in Util.GUN_DATABASE.database.size(): _add_item_display_to_category(ShopItemData.ShopCategory.WEAPON, i + 1)
 
 func _refresh_ammo_category() -> void:
-	for i in Util.GUN_DATABASE.database.size(): _add_item_display_to_category(ShopItemData.ShopCategory.AMMO, i)
+	for i in Util.BULLET_DATABASE.database.size(): _add_item_display_to_category(ShopItemData.ShopCategory.AMMO, i)
 
 func _refresh_items_category() -> void:
 	for i in Util.ITEM_DATABASE.database.size(): _add_item_display_to_category(ShopItemData.ShopCategory.ITEM, i)

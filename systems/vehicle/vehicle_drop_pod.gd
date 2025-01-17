@@ -11,6 +11,7 @@ var time_since_drop: float
 @export var velocity: Vector3
 
 @export var max_speed: float = 200.0
+@onready var spot_light_3d: SpotLight3D = $grave_pod/SpotLight3D
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _ready() -> void:
@@ -58,6 +59,10 @@ func update(delta: float) -> void:
 func drop() -> void:
 	if !full: return
 	
+	SoundManager.play_pitched_3d_sfx(14, SoundDatabase.SoundType.SFX_EXPLOSION, global_position)
+	
+	spot_light_3d.show()
+	
 	EventBus.launch_pod(metadata["pod_id"])
 	
 	dropping = true
@@ -72,4 +77,4 @@ func land() -> void:
 	print("Landed at %s" % global_position)
 	global_position = drop_target
 	
-	if is_instance_valid(driver): driver.exit_vehicle()
+	if is_instance_valid(driver): driver.exit_and_destroy_vehicle()

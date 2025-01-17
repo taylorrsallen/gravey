@@ -15,6 +15,9 @@ var target_character: Character
 var random_sound_time: float = 5.0
 var random_sound_timer: float
 
+var despawn_time: float = -1.0
+var despawn_timer: float
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _set_die_with_character(_die_with_character: bool) -> void:
 	die_with_character = _die_with_character
@@ -46,11 +49,18 @@ func _physics_process(delta: float) -> void:
 	if !multiplayer.is_server(): return
 	if !is_instance_valid(character): return
 	
+	if despawn_time != -1.0:
+		despawn_timer += delta
+		if despawn_timer >= despawn_time:
+			character.die()
+			queue_free()
+	
 	random_sound_timer += delta * randf_range(0.6, 1.0)
 	if random_sound_timer >= random_sound_time:
 		random_sound_timer -= random_sound_time
-		var sound: SoundReferenceData = character.body_base.body_data.random_sounds.pool.pick_random()
-		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, character.global_position)
+		if character.body_base.body_data.random_sounds:
+			var sound: SoundReferenceData = character.body_base.body_data.random_sounds.pool.pick_random()
+			SoundManager.play_pitched_3d_sfx(sound.id, sound.type, character.global_position)
 	
 	character.physics_update(delta)
 	_find_target_character()

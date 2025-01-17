@@ -75,3 +75,4 @@ func start_laser_designator() -> void:
 	get_parent().laser_designating = true
 	close_shop_interface()
 	get_parent().set_cursor_captured()
+	SoundManager.play_3d_sfx(16, SoundDatabase.SoundType.SFX_FOLEY, get_parent().character.global_position)

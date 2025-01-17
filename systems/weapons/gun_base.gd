@@ -98,8 +98,8 @@ func _physics_process(delta: float) -> void:
 		smoke_trail._trail_enabled = false
 	
 	if is_multiplayer_authority(): heat = move_toward(heat, 0.0, delta * 5.0)
-	var barrel_color: Color = model.barrel_base_color.lerp(model.barrel_overheat_color, heat / data.max_heat)
-	model.barrel_model.get_surface_override_material(0).albedo_color = barrel_color
+	var _barrel_color: Color = model.barrel_base_color.lerp(model.barrel_overheat_color, heat / data.max_heat)
+	#model.barrel_model.get_surface_override_material(0).albedo_color = barrel_color
 	
 	equipped_to_character.body_base.set_magnet(data.hold_magnet)
 	equipped_to_character.body_base.set_hands(data.hands)

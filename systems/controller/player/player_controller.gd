@@ -87,6 +87,7 @@ var device_assigned: int = -1
 @export var low_armor_volume_target: float = -200.0
 @export var low_shield_volume_target: float = -200.0
 @export var mask_breathing_volume_target: float = -200.0
+@onready var pod_falling_audio_stream_player: AudioStreamPlayer = $PodFallingAudioStreamPlayer
 
 # MULTIPLAYER
 @export var player_name: String
@@ -107,6 +108,7 @@ func init() -> void:
 		set_cursor_captured()
 	
 	EventBus.game_ended.connect(_on_game_ended)
+	EventBus.game_started.connect(_on_game_ended)
 
 func _on_game_ended() -> void:
 	points = 0
@@ -191,7 +193,7 @@ func _physics_process(delta: float) -> void:
 		var _character: Character = null
 		for child in owned_objects.get_children():
 			if child is Character:
-				character = child
+				_character = child
 				break
 		
 		if is_instance_valid(_character) && !_character.dead:
@@ -234,10 +236,10 @@ func _update_camera_look(delta: float) -> void:
 
 func _update_character_focused_interactable() -> void:
 	var space_state: PhysicsDirectSpaceState3D = character.get_world_3d().direct_space_state
-	var query = PhysicsRayQueryParameters3D.create(character.global_position, character.global_position + camera_rig.get_camera_forward() * 1.0, 17)
+	var query = PhysicsRayQueryParameters3D.create(character.global_position, character.global_position + camera_rig.get_camera_forward() * 1.5, 17)
 	var result: Dictionary = space_state.intersect_ray(query)
 	
-	if result.is_empty():
+	if result.is_empty() || !(result["collider"] is InteractableBase):
 		focused_interactable = null
 		return
 	
@@ -305,6 +307,9 @@ func _update_character_hud_3d(delta: float) -> void:
 		hud_3d.hide()
 	else:
 		hud_3d.show()
+	
+	if Util.main.main_menu.visible:
+		hud_3d.hide()
 	
 	if Util.main.wave_manager.current_wave == 0:
 		hud_3d.wave_counter_back.hide()
@@ -468,6 +473,10 @@ func _update_character_input(delta: float) -> void:
 		character.toggle_flashlight()
 
 func _update_character_sounds(delta: float) -> void:
+	if character.global_position.y < 900.0:
+		if !SoundManager.get_background_track(0):
+			SoundManager.play_background_track(0, SoundDatabase.SoundType.BGT_WIND, 0)
+	
 	if character.health > character.max_health * 0.5:
 		breathing_volume_target = -80.0
 		heartbeat_volume_target = -80.0
@@ -491,6 +500,11 @@ func _update_character_sounds(delta: float) -> void:
 	low_armor_audio_stream_player.volume_db = move_toward(low_armor_audio_stream_player.volume_db, low_armor_volume_target, delta * 200.0)
 	low_shields_audio_stream_player.volume_db = move_toward(low_shields_audio_stream_player.volume_db, low_shield_volume_target, delta * 200.0)
 	mask_breathing_audio_stream_player.volume_db = move_toward(mask_breathing_audio_stream_player.volume_db, mask_breathing_volume_target, delta * 200.0)
+	
+	if is_instance_valid(character.vehicle) && character.vehicle is VehicleDropPod && character.vehicle.dropping:
+		if !pod_falling_audio_stream_player.playing: pod_falling_audio_stream_player.play()
+	else:
+		pod_falling_audio_stream_player.stop()
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func spawn_character() -> void:
