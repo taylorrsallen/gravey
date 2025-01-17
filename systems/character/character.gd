@@ -676,9 +676,6 @@ func melee() -> void:
 func _rpc_melee() -> void:
 	if body_base.melee_target != 1.0:
 		if is_instance_valid(body_base.body_model) && is_instance_valid(body_base.body_model.animation_tree):
-			body_base.body_model.show()
-			body_base.body_model.invisible_timer = 0.0
-			
 			if body_base.body_data.attack_sounds:
 				var sound: SoundReferenceData = body_base.body_data.attack_sounds.pool.pick_random()
 				SoundManager.play_pitched_3d_sfx(sound.id, sound.type, global_position, 0.9, 1.1, sound.volume_db, 100.0)

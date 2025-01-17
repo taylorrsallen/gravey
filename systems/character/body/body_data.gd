@@ -51,6 +51,7 @@ enum BodyRole {
 @export var max_desired_distance: float = 20.0
 @export var firing_range: float = 30.0
 @export var melee_range: float = 1.0
+@export var bonus_points_for_kill: int = 0
 
 @export var collision_layer: int = 2
 @export var collision_mask: int = 3

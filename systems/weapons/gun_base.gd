@@ -190,6 +190,7 @@ func reload() -> void:
 	amount_to_reload = 0
 
 func toggle_flashlight() -> void:
+	if data_id == 0: return
 	flashlight = !flashlight
 	SoundManager.play_pitched_3d_sfx(4, SoundDatabase.SoundType.SFX_FOLEY, model.magazine_grab.global_position)
 
@@ -199,6 +200,7 @@ func interrupt_reload() -> void:
 	amount_to_reload = 0
 
 func cycle_fire_mode() -> void:
+	if data_id == 0: return
 	fire_mode_index = (fire_mode_index + 1) % data.fire_modes.size()
 	if data.fire_modes.size() > 1:
 		SoundManager.play_pitched_3d_sfx(4, SoundDatabase.SoundType.SFX_FOLEY, model.magazine_grab.global_position)
@@ -207,4 +209,5 @@ func refresh_fire_mode() -> void:
 	fire_mode_index = fire_mode_index % data.fire_modes.size()
 
 func get_fire_mode() -> GunData.FireMode:
+	if data_id == 0: return 0
 	return data.fire_modes[fire_mode_index]

@@ -121,14 +121,21 @@ func set_hands(hands: GunData.Hands) -> void:
 		animation_tree["parameters/walk_hands_blend/blend_amount"] = 1.0
 
 func _on_damageable_area_3d_damaged(damage_data: DamageData, area_id: int, source: Node) -> void:
-	$Model.show()
-	invisible_timer = 0.0
+	var model: Node3D = get_node_or_null("Model")
+	if is_instance_valid(model):
+		$Model.show()
+		invisible_timer = 0.0
 	get_parent()._on_damageable_area_3d_damaged(damage_data, area_id, source)
 
 func get_matter_id_for_damageable_area_3d(area_id: int) -> int:
 	return get_parent().get_matter_id_for_damageable_area_3d(area_id)
 
 func set_melee_active(active: bool) -> void:
+	var model: Node3D = get_node_or_null("Model")
+	if is_instance_valid(model):
+		$Model.show()
+		invisible_timer = 0.0
+	
 	if is_instance_valid(melee_damaging_area_3d):
 		melee_damaging_area_3d.active = active
 

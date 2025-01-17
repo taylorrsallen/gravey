@@ -46,9 +46,9 @@ func _hit(point: Vector3, _normal: Vector3, collider: Node3D) -> void:
 		if collider.team != player_controller.character.body_base.body_data.team:
 			# Headshot
 			if collider.id == 1 && collider.will_die_from_damage(data.damage_data):
-				player_controller.points += 10
+				player_controller.points += 10 + collider.source.get_parent().body_data.bonus_points_for_kill
 			elif collider.will_die_from_damage(data.damage_data):
-				player_controller.points += 5
+				player_controller.points += 5 + collider.source.get_parent().body_data.bonus_points_for_kill
 			else:
 				player_controller.points += 1
 		
