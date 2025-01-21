@@ -2,6 +2,7 @@ class_name BodyBase extends Node3D
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 signal body_changed()
+signal dealt_melee_damage(area: DamageableArea3D, will_die: bool)
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 @export var body_id: int: set = _set_body_id
@@ -45,6 +46,7 @@ func _set_body_data(_body_data: BodyData) -> void:
 	body_model.set_team(body_data.team)
 	body_model.set_melee_stats(body_data.melee_damage, body_data.melee_force, body_data.melee_slow)
 	body_model.footstep.connect(_on_footstep)
+	body_model.dealt_melee_damage.connect(_on_model_dealt_melee_damage)
 	
 	body_changed.emit()
 
@@ -117,3 +119,15 @@ func _on_footstep() -> void:
 	
 	var sound: SoundReferenceData = body_data.footstep_sound_pool.pool.pick_random()
 	SoundManager.play_pitched_3d_sfx(sound.id, sound.type, global_position, 0.9, 1.1, sound.volume_db)
+
+func _on_model_dealt_melee_damage(area: DamageableArea3D, will_die: bool) -> void:
+	dealt_melee_damage.emit(area, will_die)
+
+func set_move_input(move_input: Vector2) -> void:
+	if is_instance_valid(body_model): body_model.set_move_input(move_input)
+
+func set_vehicle_anim(_vehicle_target: float) -> void:
+	if is_instance_valid(body_model): body_model.set_vehicle_anim(_vehicle_target)
+
+func set_sprinting(_sprint_target: float) -> void:
+	if is_instance_valid(body_model): body_model.set_sprinting(_sprint_target)

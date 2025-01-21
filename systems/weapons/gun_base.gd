@@ -34,6 +34,10 @@ var equipped_to_character: Character
 
 @export var flashlight: bool
 
+@onready var persistent_audio_stream_player_3d: AudioStreamPlayer3D = $PersistentAudioStreamPlayer3D
+
+@export var metadata: Dictionary
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _set_data_id(_data_id: int) -> void:
 	data_id = _data_id
@@ -59,7 +63,15 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if !data: return
 	if !multiplayer.multiplayer_peer: return
+	
+	if !data.metadata.has("radio") && persistent_audio_stream_player_3d.playing:
+		persistent_audio_stream_player_3d.volume_db = -30.0
+	else:
+		persistent_audio_stream_player_3d.volume_db = -20.0
+	
 	if !is_instance_valid(model): return
+	
+	persistent_audio_stream_player_3d.global_position = model.muzzle.global_position
 	
 	if is_instance_valid(model.light): model.light.visible = flashlight
 	
@@ -139,10 +151,19 @@ func try_fire_single_press(player_id: int, character: Character, _delta: float) 
 
 func _fire(player_id: int, character: Character) -> void:
 	fire_timer = 0.0
+	
+	if data.metadata.has("radio"):
+		if data.metadata.has("songs"):
+			SoundManager.play_pitched_3d_sfx(4, SoundDatabase.SoundType.SFX_FOLEY, model.magazine_grab.global_position)
+			if metadata.has("song_id"): metadata["song_id"] = (metadata["song_id"] + 1) % data.metadata["songs"].size()
+			start_radio()
+		return
+	
 	rounds -= 1
 	heat += data.heat_per_shot
 	recently_fired = 0.1
 	smoke_timer = 0.0
+	
 	
 	if rounds == 0: last_round_effect()
 	
@@ -157,8 +178,11 @@ func _fire(player_id: int, character: Character) -> void:
 	VfxManager.spawn_vfx(4, model.ejection_port.global_position, model.muzzle.global_basis)
 	VfxManager.spawn_vfx(2, model.muzzle.global_position, model.muzzle.global_basis)
 	VfxManager.spawn_vfx(5, model.muzzle.global_position, model.muzzle.global_basis)
-	var sound: SoundReferenceData = data.fire_sound_pool.pool.pick_random()
-	SoundManager.play_pitched_3d_sfx(sound.id, sound.type, model.muzzle.global_position, 0.9, 1.1, sound.volume_db)
+	
+	if data.fire_sound_pool:
+		var sound: SoundReferenceData = data.fire_sound_pool.pool.pick_random()
+		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, model.muzzle.global_position, 0.9, 1.1, sound.volume_db)
+	
 	character.snap_gun_aim()
 
 func _dry_fire() -> void:
@@ -172,6 +196,11 @@ func last_round_effect() -> void:
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func try_reload() -> void:
 	if !data: return
+	
+	if data.metadata.has("radio"):
+		_toggle_radio()
+		return
+	
 	if rounds == data.capacity || !is_instance_valid(model) || reloading: return
 	if equipped_to_character.inventory.ammo_stock[data.bullet_id] == 0: return
 	
@@ -209,5 +238,25 @@ func refresh_fire_mode() -> void:
 	fire_mode_index = fire_mode_index % data.fire_modes.size()
 
 func get_fire_mode() -> GunData.FireMode:
-	if data_id == 0: return 0
+	if data_id == 0: return GunData.FireMode.SINGLE
 	return data.fire_modes[fire_mode_index]
+
+func _toggle_radio() -> void:
+	SoundManager.play_pitched_3d_sfx(4, SoundDatabase.SoundType.SFX_FOLEY, model.magazine_grab.global_position)
+	if persistent_audio_stream_player_3d.playing:
+		_rpc_stop_radio.rpc()
+	else:
+		start_radio()
+
+@rpc("any_peer", "call_local", "reliable")
+func _rpc_stop_radio() -> void:
+	persistent_audio_stream_player_3d.stop()
+
+func start_radio() -> void:
+	if !metadata.has("song_id"): metadata["song_id"] = 0
+	_rpc_start_radio.rpc(metadata["song_id"])
+
+@rpc("any_peer", "call_local", "reliable")
+func _rpc_start_radio(song_id: int) -> void:
+	persistent_audio_stream_player_3d.stream = SoundManager.SOUND_DATABASE.get_sound(song_id, SoundDatabase.SoundType.BGT_MUSIC)
+	persistent_audio_stream_player_3d.play()

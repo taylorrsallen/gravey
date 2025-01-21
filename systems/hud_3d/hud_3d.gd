@@ -75,9 +75,9 @@ func _physics_process(delta: float) -> void:
 	
 	for i in text_background_elements.size():
 		text_foreground_elements[i].modulate = primary_color_set.get_primary()
-		text_foreground_elements[i].modulate.a8 = 100
+		#text_foreground_elements[i].modulate.a8 = 100
 		text_background_elements[i].modulate = primary_color_set.get_background()
-		text_background_elements[i].modulate.a8 = 100
+		#text_background_elements[i].modulate.a8 = 100
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func set_points(points: int) -> void:

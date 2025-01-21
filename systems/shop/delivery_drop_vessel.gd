@@ -24,7 +24,7 @@ var time_since_drop: float
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _ready() -> void:
-	if is_multiplayer_authority(): launch_delay = randf_range(10.0, 20.0)
+	if is_multiplayer_authority(): launch_delay = randf_range(0.5, 2.0)
 
 func _physics_process(delta: float) -> void:
 	hud_beacon.global_position = delivery_target

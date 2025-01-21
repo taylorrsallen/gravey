@@ -16,6 +16,7 @@ func _set_powered(_powered: bool) -> void:
 func try_power(character: Character) -> void:
 	if character.power < 100: return
 	
+	SoundManager.play_3d_sfx(17, SoundDatabase.SoundType.SFX_FOLEY, global_position)
 	powered = true
 	character.power = 0
 	

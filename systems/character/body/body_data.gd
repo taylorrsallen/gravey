@@ -60,3 +60,4 @@ enum BodyRole {
 @export var footstep_sound_pool: SoundPoolData
 @export var random_sounds: SoundPoolData
 @export var attack_sounds: SoundPoolData
+@export var pain_sounds: SoundPoolData

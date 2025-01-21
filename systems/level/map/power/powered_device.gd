@@ -11,7 +11,9 @@ func _physics_process(delta: float) -> void:
 
 func _update_powered_state() -> void:
 	if !is_instance_valid(map): return
+	var power: int = 0
 	for power_station in map.power_stations.get_children():
-		if !(power_station is PowerStation): return
+		if !(power_station is PowerStation): continue
 		if power_station.id != connected_station_id: continue
-		powered = power_station.powered
+		if power_station.powered: power += 100
+	if power >= 100: powered = true

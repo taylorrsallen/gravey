@@ -52,6 +52,9 @@ import/blender/enabled=false
 
 navigation_mesh_source_group=""
 navigation_mesh_source_group_openable=""
+primary_material=""
+secondary_material=""
+tertiary_material=""
 
 [input]
 

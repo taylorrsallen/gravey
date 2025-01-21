@@ -1,6 +1,6 @@
 class_name DamagingArea3D extends Area3D
 
-signal dealt_damage(body: PhysicsBody3D)
+signal dealt_damage(area: DamageableArea3D, will_die: bool)
 
 @export var active: bool = true
 @export var damage_on_impact: bool = true
@@ -22,9 +22,10 @@ func _on_body_entered(body: PhysicsBody3D) -> void:
 	if active && body is DamageableArea3D:
 		if _is_area_excluded(body): return
 		
+		var will_die: bool = body.will_die_from_damage(damage_data)
 		body.damage(damage_data, null)
 		active = false
-		dealt_damage.emit(body)
+		dealt_damage.emit(body, will_die)
 
 func _is_area_excluded(area: DamageableArea3D) -> bool:
 	if exclude_team != -1 && area.team != -1 && exclude_team == area.team: return true

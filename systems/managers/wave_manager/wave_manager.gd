@@ -10,7 +10,7 @@ signal wave_survived()
 
 @export var current_wave: int
 
-@export var max_enemies: int = 35
+@export var max_active_enemies: int = 10
 @export var enemies: int
 
 @export var active: bool
@@ -117,7 +117,7 @@ func spawn_wave() -> void:
 	var points_left: int = points_per_wave
 	var bodies_to_spawn: Array[int] = []
 	
-	while points_left >= 1 && bodies_to_spawn.size() < max_enemies:
+	while points_left >= 1 && bodies_to_spawn.size() < max_active_enemies:
 		# Appending Husks
 		bodies_to_spawn.append(1)
 		points_left -= 1
@@ -137,7 +137,7 @@ func spawn_wave() -> void:
 			if body_to_upgrade == body_to_upgrade_to: continue
 			if rage < body_to_upgrade_to.min_rage || rage > body_to_upgrade_to.max_rage: continue
 			if body_to_upgrade_to.role == BodyData.BodyRole.DISRUPTOR && !disruption_wave: continue
-			if body_to_upgrade_to.point_value < body_to_upgrade.point_value: continue
+			if body_to_upgrade_to.point_value <= body_to_upgrade.point_value: continue
 			if upgrade_body_id == 5 && hulk_spawned: continue
 			if points_left + body_to_upgrade.point_value >= body_to_upgrade_to.point_value:
 				possible_upgrades.append(upgrade_body_id)

@@ -2,6 +2,7 @@ class_name BodyModel extends Node3D
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 signal footstep()
+signal dealt_melee_damage(area: DamageableArea3D, will_die: bool)
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 @onready var skeleton_3d: Skeleton3D
@@ -29,6 +30,18 @@ var damageable_area_rids: Array[RID]
 @export var invisible_time: float = 1.0
 @export var invisible_timer: float
 
+@export var primary_material: Material
+@export var secondary_material: Material
+@export var tertiary_material: Material
+@export var special_material: Material
+
+var move_input: Vector2
+var move_direction: Vector2
+var vehicle_target: float
+var vehicle_blend: float
+var sprint_target: float
+var sprint_blend: float
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _enter_tree() -> void:
 	set_multiplayer_authority(get_parent().get_multiplayer_authority())
@@ -51,9 +64,13 @@ func _ready() -> void:
 	else:
 		_init_model()
 	
-	_init_damageable_areas()
+	_init_children()
 
 func _physics_process(delta: float) -> void:
+	move_direction = move_direction.move_toward(move_input, delta * 5.0)
+	vehicle_blend = move_toward(vehicle_blend, vehicle_target, delta * 5.0)
+	sprint_blend = move_toward(sprint_blend, sprint_target, delta * 5.0)
+	
 	if !invisible_type: return
 	if $Model.visible:
 		invisible_timer += delta
@@ -61,24 +78,31 @@ func _physics_process(delta: float) -> void:
 			invisible_timer = 0.0
 			$Model.hide()
 
-func _init_damageable_areas() -> void:
+func _init_children() -> void:
 	damageable_areas = []
 	damageable_area_rids = []
-	for child in get_children():
-		_collect_damageable_areas_recursive(child)
+	for child in get_children(): _parse_child_recursive(child)
 	
 	if is_instance_valid(melee_damaging_area_3d):
 		melee_damaging_area_3d.exclude_areas = damageable_areas
 
-func _collect_damageable_areas_recursive(parent: Node) -> void:
+func _parse_child_recursive(parent: Node) -> void:
 	if parent is DamageableArea3D:
 		damageable_areas.append(parent)
 		damageable_area_rids.append(parent.get_rid())
 		if !parent.damaged.is_connected(_on_damageable_area_3d_damaged): parent.damaged.connect(_on_damageable_area_3d_damaged)
 		parent.source = self
+	elif parent is MeshInstance3D:
+		if parent.is_in_group("primary_material"):
+			parent.set_surface_override_material(0, primary_material)
+		elif parent.is_in_group("secondary_material"):
+			parent.set_surface_override_material(0, secondary_material)
+		elif parent.is_in_group("tertiary_material"):
+			parent.set_surface_override_material(0, tertiary_material)
+		elif special_material:
+			parent.set_surface_override_material(0, special_material)
 	else:
-		for child in parent.get_children():
-			_collect_damageable_areas_recursive(child)
+		for child in parent.get_children(): _parse_child_recursive(child)
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _init_arp_model() -> void:
@@ -136,6 +160,7 @@ func set_melee_active(active: bool) -> void:
 		$Model.show()
 		invisible_timer = 0.0
 	
+	if !is_multiplayer_authority(): return
 	if is_instance_valid(melee_damaging_area_3d):
 		melee_damaging_area_3d.active = active
 
@@ -165,3 +190,21 @@ func set_melee_stats(melee_damage: float, melee_force: float, _melee_slow: float
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _footstep() -> void:
 	footstep.emit()
+
+func _on_melee_damaging_area_3d_dealt_damage(area: DamageableArea3D, will_die: bool) -> void:
+	dealt_melee_damage.emit(area, will_die)
+
+func set_move_input(_move_input: Vector2) -> void:
+	move_input = _move_input
+	animation_tree["parameters/1h_walk/blend_position"] = Vector2(-move_direction.y, move_direction.x).normalized()
+	animation_tree["parameters/2h_heavy_walk/blend_position"] = Vector2(-move_direction.y, move_direction.x).normalized()
+
+func set_vehicle_anim(_vehicle_target: float) -> void:
+	if !animation_tree.has_animation("drop_pod"): return
+	vehicle_target = _vehicle_target
+	animation_tree["parameters/vehicle_blend/blend_amount"] = vehicle_blend
+
+func set_sprinting(_sprint_target: float) -> void:
+	if !animation_tree.has_animation("1h_pistol_sprint_forward"): return
+	sprint_target = _sprint_target
+	animation_tree["parameters/sprint_blend/blend_amount"] = sprint_blend

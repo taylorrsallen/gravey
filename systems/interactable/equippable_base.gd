@@ -7,6 +7,7 @@ var GUN_DATABASE: GunDatabase = load("res://resources/weapons/guns/gun_database.
 @export var gun_data_id: int: set = _set_gun_data_id
 @export var gun_data: GunData: set = _set_gun_data
 @export var model: GunModel
+@onready var audio_stream_player_3d: AudioStreamPlayer3D = $AudioStreamPlayer3D
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _set_gun_data_id(_gun_data_id: int) -> void:

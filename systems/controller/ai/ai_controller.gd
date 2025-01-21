@@ -137,6 +137,7 @@ func _update_target_character(delta: float) -> void:
 		character.world_move_input = next_nav_point - character.global_position
 		character.world_move_input.y = 0.0
 		character.world_move_input = character.world_move_input.normalized()
+		DebugDraw3D.draw_arrow(character.global_position, character.global_position + character.world_move_input * 2.0, Color.RED, 0.5, false, delta)
 		character.face_direction(character.world_move_input, delta)
 	elif distance_to_target < character.body_base.body_data.min_desired_distance:
 		character.world_move_input = character.global_position - target_character.global_position

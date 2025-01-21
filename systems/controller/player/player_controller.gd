@@ -92,6 +92,9 @@ var device_assigned: int = -1
 # MULTIPLAYER
 @export var player_name: String
 @export var player_color: Color
+@export var secondary_color: Color
+@export var tertiary_color: Color
+@export var special_color: Color
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func is_flag_on(flag: PlayerControllerFlag) -> bool: return Util.is_flag_on(flags, flag)
@@ -143,6 +146,8 @@ func _physics_process(delta: float) -> void:
 		laser_pointer.hide()
 	
 	if is_multiplayer_authority():
+		label_3d.hide()
+		
 		if Input.is_action_just_pressed("start_" + str(local_id)):
 			if shop.shop_interface.visible:
 				shop.close_shop_interface()
@@ -166,6 +171,14 @@ func _physics_process(delta: float) -> void:
 				character = null
 				return
 			
+			if is_instance_valid(character.body_base.body_model):
+				#character.body_base.body_model.special_material.albedo_color = special_color * 5.0
+				character.body_base.body_model.special_material.emission = special_color
+				character.body_base.body_model.primary_material.albedo_color = player_color
+				character.body_base.body_model.secondary_material.albedo_color = secondary_color
+			
+			character.body_base.set_move_input(move_input)
+			
 			character.world_move_input = world_move_input
 			character.look_in_direction(camera_rig.camera_3d.global_basis, delta)
 			
@@ -178,6 +191,7 @@ func _physics_process(delta: float) -> void:
 			_update_character_ik_targets(delta)
 			_update_character_laser_pointer()
 			_update_character_input(delta)
+			_update_character_movement(delta)
 			_update_character_hud_3d(delta)
 			_update_character_sounds(delta)
 		else:
@@ -197,6 +211,13 @@ func _physics_process(delta: float) -> void:
 				break
 		
 		if is_instance_valid(_character) && !_character.dead:
+			_character.body_base.set_move_input(move_input)
+			if is_instance_valid(_character.body_base.body_model):
+				_character.body_base.body_model.special_material.albedo_color = special_color * 5.0
+				_character.body_base.body_model.special_material.emission = special_color * 5.0
+				_character.body_base.body_model.primary_material.albedo_color = player_color
+				_character.body_base.body_model.secondary_material.albedo_color = secondary_color
+			
 			label_3d.show()
 			label_3d.global_position = _character.global_position + Vector3.UP * 0.7
 			if player_name != "":
@@ -303,6 +324,8 @@ func _update_character_equip_action() -> void:
 	successfully_equipped_with_press = true
 
 func _update_character_hud_3d(delta: float) -> void:
+	hud_3d.primary_color_set.primary = special_color
+	
 	if character.health < character.max_health * 0.5:
 		hud_3d.hide()
 	else:
@@ -472,6 +495,13 @@ func _update_character_input(delta: float) -> void:
 	if Input.is_action_just_pressed("flashlight_" + str(local_id)):
 		character.toggle_flashlight()
 
+func _update_character_movement(delta: float) -> void:
+	character.target_speed_multiplier = 1.0
+	var character_facing_to_movement_dot: float = world_move_input.dot(camera_rig.get_camera_forward())
+	if character_facing_to_movement_dot < 0.8: character.set_sprinting(false)
+	if character_facing_to_movement_dot < 0.0: character.target_speed_multiplier -= 0.3
+	if character.power > 0: character.target_speed_multiplier -= 0.3
+
 func _update_character_sounds(delta: float) -> void:
 	if character.global_position.y < 900.0:
 		if !SoundManager.get_background_track(0):
@@ -541,6 +571,7 @@ func spawn_character() -> void:
 	_on_character_weapon_changed()
 	
 	character.killed.connect(_on_character_killed)
+	character.body_base.dealt_melee_damage.connect(_on_character_dealt_melee_damage)
 
 func _on_character_weapon_changed() -> void:
 	if character.gun_base.data_id == 0:
@@ -565,6 +596,14 @@ func _on_character_weapon_changed() -> void:
 	
 	for i in character.inventory.max_weapons:
 		hud_3d.set_inventory_slot(i, character.inventory.weapons[i])
+
+func _on_character_dealt_melee_damage(area: DamageableArea3D, will_die: bool) -> void:
+	if area.team == character.body_base.body_data.team: return
+	
+	if will_die:
+		points += 10
+	else:
+		points += 2
 
 func _on_character_damaged() -> void:
 	hud_3d.damage()

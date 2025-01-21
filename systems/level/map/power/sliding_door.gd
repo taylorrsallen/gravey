@@ -7,12 +7,13 @@ class_name SlidingDoor extends Node3D
 @export var door: Node3D
 @export var obstacle: NavigationObstacle3D
 @export var navigation_link_3d: NavigationLink3D
+@onready var navigation_region_3d: NavigationRegion3D = $NavigationRegion3D
 
 func _update(delta: float) -> void:
 	if move_target == 1:
-		navigation_link_3d.enabled = true
+		navigation_region_3d.enabled = true
 	else:
-		navigation_link_3d.enabled = false
+		navigation_region_3d.enabled = false
 	
 	if is_instance_valid(obstacle): obstacle.queue_free()
 	

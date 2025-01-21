@@ -31,7 +31,9 @@ const ID_BUTTON: PackedScene = preload("res://systems/gui/id_button.scn")
 @onready var maps_v_box_container: VBoxContainer = $MainMenu/ServerPanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/VBoxContainer2/MapsVBoxContainer
 
 @onready var player_name_line_edit: LineEdit = $MainMenu/PanelContainer3/MarginContainer/VBoxContainer/PlayerNameLineEdit
-@onready var player_color_picker_button: ColorPickerButton = $MainMenu/PanelContainer3/MarginContainer/VBoxContainer/HBoxContainer/PlayerColorPickerButton
+@onready var player_color_picker_button: ColorPickerButton = $MainMenu/PanelContainer3/MarginContainer/VBoxContainer/GridContainer/PlayerColorPickerButton
+@onready var player_secondary_color_picker_button: ColorPickerButton = $MainMenu/PanelContainer3/MarginContainer/VBoxContainer/GridContainer/PlayerSecondaryColorPickerButton
+@onready var player_hud_color_picker_button: ColorPickerButton = $MainMenu/PanelContainer3/MarginContainer/VBoxContainer/GridContainer/PlayerHUDColorPickerButton
 
 # DEBUG
 @export var debug: bool = false
@@ -76,6 +78,8 @@ func _physics_process(_delta: float) -> void:
 	else:
 		player_controller.player_name = player_name_line_edit.text
 		player_controller.player_color = player_color_picker_button.color
+		player_controller.secondary_color = player_secondary_color_picker_button.color
+		player_controller.special_color = player_hud_color_picker_button.color
 		if player_controller.is_flag_on(PlayerController.PlayerControllerFlag.CURSOR_VISIBLE):
 			if !player_controller.shop.shop_interface.visible:
 				main_menu.show()
@@ -146,6 +150,7 @@ func _on_server_started() -> void:
 			child.spawn()
 	
 	game_state_manager.spawn_and_deactivate_all_pods()
+	_on_map_id_button_pressed(1)
 
 func _on_start_game_pressed() -> void:
 	EventBus.start_game()

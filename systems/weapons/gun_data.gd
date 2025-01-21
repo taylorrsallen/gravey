@@ -75,3 +75,6 @@ enum Hands {
 @export var firing_animation: String
 @export var reload_animation: String
 @export var character_reload_animation: String
+
+@export_category("Special")
+@export var metadata: Dictionary

@@ -5,6 +5,10 @@ class_name BulletBase extends Area3D
 
 var lifetime_timer: float = 0.0
 
+@export var pierce_max: int
+@export var pierces: int
+@export var exclude: Array[RID] = []
+
 #@onready var trail_3d: Trail3D = $Trail3D
 @export var previous_position: Vector3
 
@@ -20,7 +24,7 @@ func _physics_process(delta: float) -> void:
 	DebugDraw3D.draw_line(global_position, global_position - global_basis.z * data.speed, Color.RED, delta * 4.0)
 	
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
-	var query = PhysicsRayQueryParameters3D.create(global_position, global_position - global_basis.z * data.speed, 5, [])
+	var query = PhysicsRayQueryParameters3D.create(global_position, global_position - global_basis.z * data.speed, 5, exclude)
 	query.hit_from_inside = true
 	var result: Dictionary = space_state.intersect_ray(query)
 	
@@ -56,4 +60,11 @@ func _hit(point: Vector3, _normal: Vector3, collider: Node3D) -> void:
 	
 	Util.play_bullet_hit_effects(collider, point, Basis.looking_at(point + global_basis.z), data)
 	
-	queue_free()
+	if pierce_max != 0:
+		if pierces >= pierce_max:
+			queue_free()
+		else:
+			exclude.append(collider.get_rid())
+			pierces += 1
+	else:
+		queue_free()

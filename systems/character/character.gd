@@ -26,7 +26,7 @@ enum CharacterFlag {
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 # COMPOSITION
-@onready var navigation_agent_3d: NavigationAgent3D = $NavigationAgent3D
+@onready var navigation_agent_3d: NavigationAgent3D = $NavigationOffset/NavigationAgent3D
 @onready var nav_collider: CollisionShape3D = $NavCollider
 @onready var body_container: Node3D = $BodyContainer
 @onready var body_base: BodyBase = $BodyContainer/BodyBase
@@ -206,11 +206,22 @@ func physics_update(delta: float) -> void:
 		hide()
 		return
 	
+	var set_ik_active: bool = true
+	
+	if in_vehicle:
+		body_base.set_vehicle_anim(1.0)
+	else:
+		body_base.set_vehicle_anim(0.0)
+	
+	if is_flag_on(CharacterFlag.SPRINT):
+		set_ik_active = false
+		body_base.set_sprinting(1.0)
+	else:
+		body_base.set_sprinting(0.0)
+	
 	if power > 0:
-		target_speed_multiplier = 0.7
 		if is_instance_valid(body_base.body_model): body_base.body_model.power_brick.show()
 	else:
-		target_speed_multiplier = 1.0
 		if is_instance_valid(body_base.body_model) && is_instance_valid(body_base.body_model.power_brick): body_base.body_model.power_brick.hide()
 	
 	if body_base.melee_target == 1.0:
@@ -219,16 +230,16 @@ func physics_update(delta: float) -> void:
 			melee_timer = 0.0
 			body_base.melee_target = 0.0
 			body_base.body_model.set_melee_active(false)
-		body_base.set_ik_active(false)
-	else:
-		body_base.set_ik_active(true)
+		set_ik_active = false
 	
 	if in_vehicle:
-		body_base.set_ik_active(false)
+		set_ik_active = false
 		gun_base.hide()
 		body_base.set_walking(0.0)
 	else:
 		gun_base.show()
+	
+	body_base.set_ik_active(set_ik_active)
 	
 	if !is_instance_valid(vehicle):
 		_update_movement(delta)
@@ -244,6 +255,7 @@ func physics_update(delta: float) -> void:
 		#global_transform = vehicle.seat.global_transform
 	
 	_update_stats(delta)
+	
 
 func _process(_delta: float) -> void:
 	if shield_recharge_timer != 0.0: return
@@ -545,6 +557,10 @@ func _deal_damage(damage_strength: float, area_id: int) -> void:
 		speed_multiplier = 0.25
 		return
 	
+	if is_multiplayer_authority() && body_base.body_data.pain_sounds:
+		var sound: SoundReferenceData = body_base.body_data.pain_sounds.pool.pick_random()
+		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, global_position, 0.9, 1.1, sound.volume_db)
+	
 	speed_multiplier = 0.1
 	speed_recharge_timer = 0.0
 	health -= damage_left
@@ -653,15 +669,16 @@ func _on_weapon_changed() -> void:
 
 func drop_weapon(_lin_vel: Vector3, _ang_vel: Vector3) -> void:
 	if gun_base.data_id == 0: return
-	SpawnManager.spawn_equippable(
-		gun_base.data_id, {
+	var dropped_metadata: Dictionary = {
 			"rounds" = gun_base.rounds,
 			"fire_mode_index" = gun_base.fire_mode_index,
 			"flashlight" = gun_base.flashlight,
-		},
-		global_transform,
-		_lin_vel,
-		_ang_vel)
+		}
+	
+	#if gun_base.data.has("radio"):
+		#dropped_metadata["song_id"] = 
+	
+	SpawnManager.spawn_equippable(gun_base.data_id, dropped_metadata, global_transform, _lin_vel, _ang_vel)
 	gun_base.data_id = 0
 	set_active_inventory_slot_weapon()
 	weapon_changed.emit()
