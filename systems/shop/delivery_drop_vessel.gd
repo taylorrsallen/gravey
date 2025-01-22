@@ -62,7 +62,7 @@ func launch() -> void:
 	
 	if launch_sound_pool:
 		var sound: SoundReferenceData = launch_sound_pool.pool.pick_random()
-		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, global_position, 0.9, 1.1, sound.volume_db, 100.0)
+		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, global_position, 0.9, 1.1, sound.volume_db, 500.0)
 
 @rpc("any_peer", "call_local", "reliable")
 func _rpc_launch() -> void:

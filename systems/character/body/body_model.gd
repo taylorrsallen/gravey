@@ -200,11 +200,13 @@ func set_move_input(_move_input: Vector2) -> void:
 	animation_tree["parameters/2h_heavy_walk/blend_position"] = Vector2(-move_direction.y, move_direction.x).normalized()
 
 func set_vehicle_anim(_vehicle_target: float) -> void:
+	if !is_instance_valid(animation_tree): return
 	if !animation_tree.has_animation("drop_pod"): return
 	vehicle_target = _vehicle_target
 	animation_tree["parameters/vehicle_blend/blend_amount"] = vehicle_blend
 
 func set_sprinting(_sprint_target: float) -> void:
+	if !is_instance_valid(animation_tree): return
 	if !animation_tree.has_animation("1h_pistol_sprint_forward"): return
 	sprint_target = _sprint_target
 	animation_tree["parameters/sprint_blend/blend_amount"] = sprint_blend

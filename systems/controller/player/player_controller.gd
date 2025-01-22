@@ -325,6 +325,8 @@ func _update_character_equip_action() -> void:
 
 func _update_character_hud_3d(delta: float) -> void:
 	hud_3d.primary_color_set.primary = special_color
+	hud_3d.primary_color_set.secondary = special_color * 0.8
+	hud_3d.primary_color_set.background = special_color * 0.5
 	
 	if character.health < character.max_health * 0.5:
 		hud_3d.hide()
@@ -601,9 +603,9 @@ func _on_character_dealt_melee_damage(area: DamageableArea3D, will_die: bool) ->
 	if area.team == character.body_base.body_data.team: return
 	
 	if will_die:
-		points += 10
+		points += 13
 	else:
-		points += 2
+		points += 1
 
 func _on_character_damaged() -> void:
 	hud_3d.damage()

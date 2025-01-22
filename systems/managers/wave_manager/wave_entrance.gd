@@ -1,0 +1,1 @@
+class_name WaveEntrance extends Marker3D

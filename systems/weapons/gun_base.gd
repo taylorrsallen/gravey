@@ -181,7 +181,7 @@ func _fire(player_id: int, character: Character) -> void:
 	
 	if data.fire_sound_pool:
 		var sound: SoundReferenceData = data.fire_sound_pool.pool.pick_random()
-		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, model.muzzle.global_position, 0.9, 1.1, sound.volume_db)
+		SoundManager.play_pitched_3d_sfx(sound.id, sound.type, model.muzzle.global_position, 0.9, 1.1, sound.volume_db, 100.0)
 	
 	character.snap_gun_aim()
 

@@ -5,6 +5,8 @@ class_name PowerStation extends Node3D
 
 @onready var power_cell: Node3D = $grave_power_brick
 
+@export var shop_unlocks: Array[ShopItemData]
+
 func _set_powered(_powered: bool) -> void:
 	powered = _powered
 	if powered:

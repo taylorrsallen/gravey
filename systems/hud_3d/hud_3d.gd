@@ -4,23 +4,23 @@ class_name HUD3D extends Node3D
 # COMPOSITION
 @onready var reticle: MeshInstance3D = $Reticle
 @onready var radar: MeshInstance3D = $Radar
-@onready var ammo_display: AmmoDisplay = $AmmoDisplay
 @onready var health_display: AmmoDisplay = $HealthDisplay
 @onready var shield_display: AmmoDisplay = $ShieldDisplay
 @onready var interact_prompt: Label3D = $InteractPrompt
-@onready var fire_mode_display: Node3D = $FireModeDisplay
-@onready var ammo_stock_widget: Node3D = $AmmoStockWidget
+@onready var ammo_display: AmmoDisplay = $BottomRightElements/AmmoDisplay
+@onready var fire_mode_display: Node3D = $BottomRightElements/FireModeDisplay
+@onready var ammo_stock_widget: Node3D = $BottomRightElements/AmmoStockWidget
 
-@onready var ammo_stock_counter: Label3D = $AmmoStockWidget/AmmoStockCounter
-@onready var ammo_stock_icon: AmmoRowMesh = $AmmoStockWidget/Node3D/AmmoStockIcon
-@onready var ammo_stock_border: MeshInstance3D = $AmmoStockWidget/AmmoStockBorder
+@onready var ammo_stock_counter: Label3D = $BottomRightElements/AmmoStockWidget/AmmoStockCounter
+@onready var ammo_stock_icon: AmmoRowMesh = $BottomRightElements/AmmoStockWidget/Node3D/AmmoStockIcon
+@onready var ammo_stock_border: MeshInstance3D = $BottomRightElements/AmmoStockWidget/AmmoStockBorder
 
-@onready var single_back: Label3D = $FireModeDisplay/SingleBack
-@onready var single_front: Label3D = $FireModeDisplay/SingleBack/SingleFront
-@onready var semi_auto_back: Label3D = $FireModeDisplay/SemiAutoBack
-@onready var semi_auto_front: Label3D = $FireModeDisplay/SemiAutoBack/SemiAutoFront
-@onready var full_auto_back: Label3D = $FireModeDisplay/FullAutoBack
-@onready var full_auto_front: Label3D = $FireModeDisplay/FullAutoBack/FullAutoFront
+@onready var single_back: Label3D = $BottomRightElements/FireModeDisplay/SingleBack
+@onready var single_front: Label3D = $BottomRightElements/FireModeDisplay/SingleBack/SingleFront
+@onready var semi_auto_back: Label3D = $BottomRightElements/FireModeDisplay/SemiAutoBack
+@onready var semi_auto_front: Label3D = $BottomRightElements/FireModeDisplay/SemiAutoBack/SemiAutoFront
+@onready var full_auto_back: Label3D = $BottomRightElements/FireModeDisplay/FullAutoBack
+@onready var full_auto_front: Label3D = $BottomRightElements/FireModeDisplay/FullAutoBack/FullAutoFront
 
 @onready var inventory_icon_0: MeshInstance3D = $WeaponSelection/InventoryIcon0
 @onready var inventory_icon_1: MeshInstance3D = $WeaponSelection/InventoryIcon1
@@ -35,8 +35,8 @@ class_name HUD3D extends Node3D
 @onready var inventory_icon_text_back_2: Label3D = $WeaponSelection/InventoryIcon2/InventoryIconTextBack2
 @onready var inventory_icon_text_front_2: Label3D = $WeaponSelection/InventoryIcon2/InventoryIconTextBack2/InventoryIconTextFront2
 
-@onready var points_counter_back: Label3D = $PointsCounterBack
-@onready var points_counter_front: Label3D = $PointsCounterBack/PointsCounterFront
+@onready var points_counter_back: Label3D = $BottomRightElements/PointsCounterBack
+@onready var points_counter_front: Label3D = $BottomRightElements/PointsCounterBack/PointsCounterFront
 
 @onready var wave_counter_back: Label3D = $WaveCounterBack
 @onready var wave_counter_front: Label3D = $WaveCounterBack/WaveCounterFront
@@ -48,7 +48,7 @@ class_name HUD3D extends Node3D
 @export var secondary_color_set: ColorSet
 @export var empty_inventory_icon: Texture2D
 
-@onready var power_brick_icon: MeshInstance3D = $PowerBrickIcon
+@onready var power_brick_icon: MeshInstance3D = $BottomRightElements/PowerBrickIcon
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _physics_process(delta: float) -> void:
