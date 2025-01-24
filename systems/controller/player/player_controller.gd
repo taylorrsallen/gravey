@@ -497,7 +497,7 @@ func _update_character_input(delta: float) -> void:
 	if Input.is_action_just_pressed("flashlight_" + str(local_id)):
 		character.toggle_flashlight()
 
-func _update_character_movement(delta: float) -> void:
+func _update_character_movement(_delta: float) -> void:
 	character.target_speed_multiplier = 1.0
 	var character_facing_to_movement_dot: float = world_move_input.dot(camera_rig.get_camera_forward())
 	if character_facing_to_movement_dot < 0.8: character.set_sprinting(false)
