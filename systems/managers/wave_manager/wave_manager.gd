@@ -90,7 +90,7 @@ func _collect_spawners_recursive(parent: Node) -> void:
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func restart() -> void:
-	points_to_add_per_wave = 10
+	points_to_add_per_wave = 16
 	points_per_wave = 8
 	rage = 0.0
 	bodies_to_spawn_in_wave = []
@@ -131,9 +131,15 @@ func spawn_wave() -> void:
 	var points_left: int = points_per_wave
 	var bodies_to_spawn: Array[int] = []
 	
+	var base_body: int = 1
+	if rage > 3.0:
+		base_body = 2
+	elif rage > 7.0:
+		base_body = 3
+	
 	while points_left >= 1 && bodies_to_spawn.size() < max_active_enemies:
 		# Appending Husks
-		bodies_to_spawn.append(1)
+		bodies_to_spawn.append(base_body)
 		points_left -= 1
 	
 	var hulk_spawned: bool = false

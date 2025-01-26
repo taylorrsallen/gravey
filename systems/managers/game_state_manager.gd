@@ -48,6 +48,10 @@ func _on_readied_character_killed(_character: Character) -> void:
 	if lives == 0:
 		players_in_mission -= 1
 		player_characters_in_mission.erase(_character)
+		#var inactive_pod_spawners: Array[DropPodSpawner] = []
+		#var spawner: DropPodSpawner = drop_pod_spawners.pick_random()
+		#spawner.spawn()
+		#spawner.active = true
 	else:
 		lives -= 1
 		# TODO: Open a pod door

@@ -601,6 +601,11 @@ func die() -> void:
 		killed.emit(self)
 		inventory.drop_contents()
 		
+		if body_base.body_id != 0:
+			if body_base.body_id == 6:
+				VfxManager.spawn_vfx(10, body_container.global_position + Vector3.UP * 0.15, body_container.global_basis)
+			else:
+				VfxManager.spawn_vfx(9, body_container.global_position + Vector3.UP * 0.15, body_container.global_basis)
 		if is_instance_valid(vehicle): exit_vehicle()
 		
 		_rpc_die.rpc()

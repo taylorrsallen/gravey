@@ -15,6 +15,9 @@ func _update(_delta: float) -> void:
 	powered = true
 
 func _physics_process(delta: float) -> void:
+	for child in get_children():
+		if child.has_method("_update_flipped"): child._update_flipped(flipped)
+	
 	if flipped:
 		model.rotation_degrees.x = move_toward(model.rotation_degrees.x, model_flipped_x_rotation, delta * flip_speed)
 	else:
@@ -28,6 +31,10 @@ func _physics_process(delta: float) -> void:
 func try_flip() -> void:
 	if !powered: return
 	if flipped: return
+	_rpc_try_flip.rpc_id(1)
+
+@rpc("any_peer", "call_local", "reliable")
+func _rpc_try_flip() -> void:
 	flipped = true
 	unflip_timer = 0.0
 
