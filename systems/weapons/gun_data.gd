@@ -64,6 +64,7 @@ enum Hands {
 @export_category("Firing")
 @export var rounds_per_second: float = 0.07518797
 @export var reload_time: float = 2.5
+@export var reload_amount: int = -1
 @export var capacity: int = 30
 
 @export_category("Fire Mode")

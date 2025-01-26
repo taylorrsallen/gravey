@@ -269,6 +269,8 @@ func _update_character_focused_interactable() -> void:
 		focused_interactable = result["collider"]
 	elif collider.get_parent() is PowerStation && !collider.get_parent().powered:
 		focused_interactable = result["collider"]
+	elif collider.get_parent() is BreakerSwitch && !collider.get_parent().flipped:
+		focused_interactable = result["collider"]
 	else:
 		focused_interactable = null
 
@@ -290,6 +292,8 @@ func _update_character_focused_interactable_action() -> void:
 				focused_interactable.get_parent().destroy()
 			elif focused_interactable.get_parent() is PowerStation:
 				focused_interactable.get_parent().try_power(character)
+			elif focused_interactable.get_parent() is BreakerSwitch:
+				focused_interactable.get_parent().try_flip()
 
 func _update_character_focused_equippable() -> void:
 	var results: Array[PhysicsBody3D] = AreaQueryManager.query_area(character.global_position, 1.8, 8)
@@ -385,6 +389,13 @@ func _update_character_hud_3d(delta: float) -> void:
 				hud_3d.interact_prompt.show()
 			else:
 				hud_3d.interact_prompt.text = "Need power brick"
+				hud_3d.interact_prompt.show()
+		elif focused_interactable.get_parent() is BreakerSwitch:
+			if focused_interactable.get_parent().powered:
+				hud_3d.interact_prompt.text = "Press E to flip breaker"
+				hud_3d.interact_prompt.show()
+			else:
+				hud_3d.interact_prompt.text = "Needs power!"
 				hud_3d.interact_prompt.show()
 		else:
 			hud_3d.interact_prompt.hide()

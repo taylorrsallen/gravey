@@ -10,7 +10,8 @@ signal wave_survived()
 
 @export var current_wave: int
 
-@export var max_active_enemies: int = 10
+@export var max_enemies_per_wave: int = 10
+@export var max_active_enemies: int = 25
 @export var enemies: int
 
 @export var active: bool
@@ -20,8 +21,8 @@ signal wave_survived()
 @export var bug_wave_chance: float = 0.5
 @export var grunt_wave_chance: float = 0.5
 
-@export var pause_before_first_wave: float = 10.0
-@export var pause_between_waves: float = 3.0
+@export var pause_before_first_wave: float = 9.0
+@export var pause_between_waves: float = 10.0
 @export var pause_timer: float
 
 @export var incoming_wave_sound_pool: SoundPoolData
@@ -32,6 +33,12 @@ signal wave_survived()
 
 @export var chance_for_disruption_wave: float
 @export var disruption_chance_per_non_disruption_wave: float = 0.5
+
+var active_spawners: Array[WaveSpawner]
+var body_index_to_spawn: int
+var bodies_to_spawn_in_wave: Array[int]
+var spawn_cd: float = 0.25
+var spawn_timer: float
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func init() -> void:
@@ -44,6 +51,10 @@ func init() -> void:
 func _physics_process(delta: float) -> void:
 	if !multiplayer.multiplayer_peer || !multiplayer.is_server(): return
 	if !active: return
+	
+	if !bodies_to_spawn_in_wave.is_empty():
+		_try_spawn(delta)
+		return
 	
 	if enemies != 0: return
 	
@@ -81,6 +92,8 @@ func _collect_spawners_recursive(parent: Node) -> void:
 func restart() -> void:
 	points_to_add_per_wave = 10
 	points_per_wave = 8
+	rage = 0.0
+	bodies_to_spawn_in_wave = []
 	
 	current_wave = 0
 	enemies = 0
@@ -101,6 +114,7 @@ func spawn_wave() -> void:
 		SoundManager.play_networked_ui_sfx(11, SoundDatabase.SoundType.SFX_VOICE)
 	
 	current_wave += 1
+	max_enemies_per_wave += randi_range(1, 4)
 	points_per_wave += points_to_add_per_wave + randi_range(-points_to_add_variance, points_to_add_variance) + Util.main.game_state_manager.players_in_mission * 2.0
 	rage += rage_per_wave + randf_range(-rage_variance, rage_variance)
 	
@@ -161,37 +175,62 @@ func spawn_wave() -> void:
 	spawn_bodies(bodies_to_spawn)
 
 func spawn_bodies(bodies: Array[int]) -> void:
-	var active_spawners: Array[WaveSpawner] = []
+	bodies_to_spawn_in_wave = bodies
+	active_spawners = []
 	for spawner in spawners:
 		if spawner.active: active_spawners.append(spawner)
 	
-	var spawns_per_spawner: int = bodies.size() / active_spawners.size()
-	var amount_spawned: int = 0
+	#for spawner in active_spawners:
+		#for _i in spawns_per_spawner:
+			#if amount_spawned >= bodies.size(): continue
+			#await get_tree().create_timer(0.1).timeout
+			#if !is_instance_valid(spawner): return
+			#spawn(bodies[amount_spawned], spawner)
+			#amount_spawned += 1
+	#
+	#while amount_spawned < bodies.size() - 1:
+		#var spawner: WaveSpawner = active_spawners.pick_random()
+		#await get_tree().create_timer(0.1).timeout
+		#if !is_instance_valid(spawner): return
+		#spawn(bodies[amount_spawned], spawner)
+		#amount_spawned += 1
+
+func _try_spawn(delta: float) -> void:
+	if enemies >= max_active_enemies: return
 	
-	for spawner in active_spawners:
-		for _i in spawns_per_spawner:
-			if amount_spawned >= bodies.size(): continue
-			await get_tree().create_timer(0.1).timeout
-			if !is_instance_valid(spawner): return
-			spawn(bodies[amount_spawned], spawner)
-			amount_spawned += 1
+	spawn_timer += delta
+	if spawn_timer < spawn_cd: return
+	spawn_timer = 0.0
 	
-	while amount_spawned < bodies.size() - 1:
-		var spawner: WaveSpawner = active_spawners.pick_random()
-		await get_tree().create_timer(0.1).timeout
-		if !is_instance_valid(spawner): return
-		spawn(bodies[amount_spawned], spawner)
-		amount_spawned += 1
+	if body_index_to_spawn >= bodies_to_spawn_in_wave.size():
+		bodies_to_spawn_in_wave = []
+		body_index_to_spawn = 0
+		return
+	
+	var spawner: WaveSpawner = active_spawners.pick_random()
+	spawn(bodies_to_spawn_in_wave[body_index_to_spawn], spawner)
+	body_index_to_spawn += 1
 
 func spawn(body_id: int, spawner: WaveSpawner) -> void:
 	enemies += 1
 	
 	var new_spawn: Node = SpawnManager.spawn_server_owned_object(Spawner.SpawnType.ENEMY, body_id, {}, spawner.global_transform)
 	new_spawn.character.killed.connect(_on_enemy_killed)
-	new_spawn.despawn_time = 300.0
+	new_spawn.character.max_health_multiplier *= (1 + ((current_wave - 1) * 0.1))
 	if Util.main.game_state_manager.players_in_mission > 1:
-		new_spawn.character.max_health *= Util.main.game_state_manager.players_in_mission * 0.5
-		new_spawn.character.health = new_spawn.character.max_health
+		new_spawn.character.max_health *= Util.main.game_state_manager.players_in_mission * 0.25
+	
+	new_spawn.despawn_time = 300.0
+	
+	var wave_entrance: WaveEntrance = null
+	for child in spawner.get_children():
+		if child is WaveEntrance:
+			wave_entrance = child
+			break
+	
+	if is_instance_valid(wave_entrance):
+		new_spawn.walk_to_target_point = true
+		new_spawn.target_point = spawner.get_child(0).global_position
 
 func _on_enemy_killed(_character: Character) -> void:
 	enemies -= 1

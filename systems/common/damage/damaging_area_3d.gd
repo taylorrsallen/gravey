@@ -19,6 +19,7 @@ func _physics_process(_delta: float) -> void:
 	_on_body_entered(overlaps.pick_random())
 
 func _on_body_entered(body: PhysicsBody3D) -> void:
+	if !is_instance_valid(body): return
 	if active && body is DamageableArea3D:
 		if _is_area_excluded(body): return
 		

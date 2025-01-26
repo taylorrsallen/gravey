@@ -326,3 +326,9 @@ flashlight_0={
 3d_physics/layer_7="VFX"
 3d_physics/layer_8="INVISIBLE_WALL"
 3d_physics/layer_9="AI_WALKABLE"
+3d_physics/layer_10="PATHING_CHECK"
+
+[navigation]
+
+3d/default_cell_size=0.1
+3d/default_cell_height=0.1

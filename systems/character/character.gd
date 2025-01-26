@@ -108,6 +108,8 @@ var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var r_hand_ik_target_target: Vector3
 
 # STATS
+@export var max_health_multiplier: float = 1.0: set = _set_max_health_multiplier
+@export var base_max_health: float = 40.0
 @export var max_health: float = 40.0
 @export var health: float = max_health
 @export var max_shields: float = 100.0
@@ -151,7 +153,8 @@ func _on_body_changed() -> void:
 	
 	max_shields = body_base.body_data.max_shields
 	shields = max_shields
-	max_health = body_base.body_data.max_health
+	base_max_health = body_base.body_data.max_health
+	max_health = base_max_health * max_health_multiplier
 	health = max_health
 	
 	crouch_speed = body_base.body_data.crouch_speed
@@ -174,6 +177,11 @@ func get_weapon_hold_offset() -> Vector3:
 		return gun_base.data.hold_offset
 	else:
 		return Vector3.ZERO
+
+func _set_max_health_multiplier(_max_health_multiplier: float) -> void:
+	max_health_multiplier = _max_health_multiplier
+	max_health = base_max_health * max_health_multiplier
+	health = max_health
 
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _enter_tree() -> void:

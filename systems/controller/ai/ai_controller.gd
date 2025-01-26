@@ -18,6 +18,15 @@ var random_sound_timer: float
 var despawn_time: float = -1.0
 var despawn_timer: float
 
+var walk_to_target_point: bool
+var walk_to_target_started: bool
+var target_point: Vector3
+
+var max_path_refresh_distance: float = 100.0
+var max_path_refresh_time: float = 2.0
+var repath_cd: float = 0.2
+var repath_timer: float
+
 # (({[%%%(({[=======================================================================================================================]}))%%%]}))
 func _set_die_with_character(_die_with_character: bool) -> void:
 	die_with_character = _die_with_character
@@ -63,8 +72,18 @@ func _physics_process(delta: float) -> void:
 			SoundManager.play_pitched_3d_sfx(sound.id, sound.type, character.global_position)
 	
 	character.physics_update(delta)
-	_find_target_character()
-	_update_target_character(delta)
+	
+	if walk_to_target_point:
+		if !walk_to_target_started:
+			walk_to_target_started = true
+			_update_path(target_point)
+		var next_nav_point = character.navigation_agent_3d.get_next_path_position()
+		move_character_in_direction(next_nav_point - character.global_position, true, delta)
+		
+		if character.global_position.distance_to(target_point) < 1.5: walk_to_target_point = false
+	else:
+		_find_target_character()
+		_update_target_character(delta)
 
 func _find_target_character() -> void:
 	var peer_connections: Array[PeerConnection] = []
@@ -132,18 +151,9 @@ func _update_target_character(delta: float) -> void:
 		should_move_closer = distance_to_target > character.body_base.body_data.max_desired_distance
 	
 	if should_move_closer:
-		character.navigation_agent_3d.target_position = target_character.global_position
-		var next_nav_point = character.navigation_agent_3d.get_next_path_position()
-		character.world_move_input = next_nav_point - character.global_position
-		character.world_move_input.y = 0.0
-		character.world_move_input = character.world_move_input.normalized()
-		DebugDraw3D.draw_arrow(character.global_position, character.global_position + character.world_move_input * 2.0, Color.RED, 0.5, false, delta)
-		character.face_direction(character.world_move_input, delta)
+		_try_move_to_target(delta)
 	elif distance_to_target < character.body_base.body_data.min_desired_distance:
-		character.world_move_input = character.global_position - target_character.global_position
-		character.world_move_input.y = 0.0
-		character.world_move_input = character.world_move_input.normalized()
-		character.face_direction(-character.world_move_input, delta)
+		move_character_in_direction(character.global_position - target_character.global_position, false, delta)
 	else:
 		character.face_direction(target_character.global_position - character.global_position, delta)
 		character.world_move_input = Vector3.ZERO
@@ -159,3 +169,39 @@ func _update_target_character(delta: float) -> void:
 				character.gun_base.try_reload()
 	elif should_melee:
 		character.melee()
+
+func _try_update_path(target: Vector3, delta: float) -> void:
+	var distance_to_target: float = character.global_position.distance_to(target)
+	var extra_repath_cd_percent: float = distance_to_target / max_path_refresh_distance
+	
+	repath_timer += delta
+	if repath_timer >= repath_cd + max_path_refresh_time * extra_repath_cd_percent:
+		repath_timer = 0.0
+		_update_path(target)
+
+func _update_path(target: Vector3) -> void:
+	character.navigation_agent_3d.target_position = target
+
+func move_character_in_direction(direction: Vector3, face_forward: bool, delta: float) -> void:
+	character.world_move_input = direction
+	character.world_move_input.y = 0.0
+	character.world_move_input = character.world_move_input.normalized()
+	
+	if face_forward:
+		character.face_direction(character.world_move_input, delta)
+	else:
+		character.face_direction(-character.world_move_input, delta)
+
+func _try_move_to_target(delta: float) -> void:
+	var space_state: PhysicsDirectSpaceState3D = character.get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(character.global_position, target_character.global_position, 513)
+	var result: Dictionary = space_state.intersect_ray(query)
+	
+	if result.is_empty():
+		# There is nothing between character and target, so just walk to them and don't use Godot's shitty pathing
+		move_character_in_direction(target_character.global_position - character.global_position, true, delta)
+	else:
+		# Can't walk in straight line, so path
+		_try_update_path(target_character.global_position, delta)
+		var next_nav_point = character.navigation_agent_3d.get_next_path_position()
+		move_character_in_direction(next_nav_point - character.global_position, true, delta)

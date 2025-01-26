@@ -205,6 +205,7 @@ func try_reload() -> void:
 	if equipped_to_character.inventory.ammo_stock[data.bullet_id] == 0: return
 	
 	var ammo_desired: int = data.capacity - rounds
+	if data.reload_amount != -1: ammo_desired = data.reload_amount
 	
 	SoundManager.play_pitched_3d_sfx(0, SoundDatabase.SoundType.SFX_FOLEY, model.magazine_grab.global_position)
 	reloading = true

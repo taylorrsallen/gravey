@@ -44,7 +44,17 @@ func _refresh_vessel_category() -> void:
 	pass
 
 func _refresh_guns_category() -> void:
-	for i in Util.GUN_DATABASE.database.size(): _add_item_display_to_category(ShopItemData.ShopCategory.WEAPON, i + 1)
+	var map: Map = Util.main.level.get_map()
+	if is_instance_valid(map):
+		var available_guns: Array[ShopItemData] = []
+		for power_station in map.power_stations.get_children():
+			if !power_station.powered: continue
+			for shop_item_data in power_station.shop_unlocks:
+				if shop_item_data.category == ShopItemData.ShopCategory.WEAPON && !available_guns.has(shop_item_data):
+					available_guns.append(shop_item_data)
+		for shop_item_data in available_guns: _add_item_display_to_category(ShopItemData.ShopCategory.WEAPON, shop_item_data.id)
+	else:
+		for i in Util.GUN_DATABASE.database.size(): _add_item_display_to_category(ShopItemData.ShopCategory.WEAPON, i + 1)
 
 func _refresh_ammo_category() -> void:
 	for i in Util.BULLET_DATABASE.database.size(): _add_item_display_to_category(ShopItemData.ShopCategory.AMMO, i)
